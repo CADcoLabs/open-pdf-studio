@@ -230,6 +230,18 @@ export async function closeTab(index, force = false, dialogAction = null) {
   if (doc.filePath) {
     await unlockFile(doc.filePath);
   }
+  // Na een save met text-edits rendert het document uit een tijdelijke
+  // werkkopie (reloadFromBytes) terwijl de lock op het ECHTE bestand staat
+  // (saveTargetPath). Die lock ook loslaten, en de werkkopie opruimen —
+  // anders blijft het bestand vergrendeld tot de app afsluit. (#345)
+  if (doc.saveTargetPath && doc.saveTargetPath !== doc.filePath) {
+    await unlockFile(doc.saveTargetPath);
+  }
+  if (doc._renderTemp && doc.filePath && !doc.isUntitled) {
+    try {
+      if (window.__TAURI__?.fs?.remove) await window.__TAURI__.fs.remove(doc.filePath);
+    } catch (e) { console.warn('[tabs] werkkopie opruimen mislukt:', e); }
+  }
 
   // Delete the temp backing file of an untitled (never-saved) blank doc.
   if (doc.isUntitled && doc.filePath) {

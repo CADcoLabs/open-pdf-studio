@@ -197,6 +197,14 @@ function pageCompensationForAp(w, h, pageRot) {
 }
 
 // Save PDF with annotations
+// Eén save tegelijk. Twee overlappende saves (Ctrl+S twee keer snel, of
+// opslaan-bij-sluiten tijdens een lopende save) lazen allebei dezelfde
+// basisbytes en schreven na elkaar: de tweede overschreef het resultaat
+// van de eerste, en de verversing na text-edits (reloadFromBytes) liep dan
+// door elkaar. De tweede aanroep wacht nu op de eerste en werkt daarna op
+// het bijgewerkte document. (#345)
+let _saveBezig = null;
+
 export async function savePDF(saveAsPath = null) {
   const activeDoc = getActiveDocument();
   const currentPath = activeDoc?.filePath;
@@ -218,6 +226,17 @@ export async function savePDF(saveAsPath = null) {
     return await savePDFAs();
   }
 
+  if (_saveBezig) {
+    await _saveBezig.catch(() => {});
+    return savePDF(saveAsPath);
+  }
+  _saveBezig = _savePDFNu(saveAsPath).finally(() => { _saveBezig = null; });
+  return _saveBezig;
+}
+
+async function _savePDFNu(saveAsPath) {
+  const activeDoc = getActiveDocument();
+  const currentPath = activeDoc?.filePath;
   try {
     showLoading('Saving PDF...');
 
@@ -2829,13 +2848,18 @@ export async function savePDF(saveAsPath = null) {
     if (textEditsGebakken && !saveAsPath && activeDoc) {
       try {
         const { reloadFromBytes } = await import('./page-manager.js');
-        activeDoc.textEdits = [];
         await reloadFromBytes(
           savedBytes,
           activeDoc.annotations,
           activeDoc.pageRotations,
           activeDoc.currentPage,
         );
+        // Pas NA een geslaagde herlaad zijn de records overbodig. Mislukt de
+        // herlaad, dan blijven ze (als 'baked') staan: de painter tekent de
+        // nieuwe tekst dan nog steeds over de oude render heen, in plaats
+        // van dat de bewerking uit beeld verdwijnt terwijl ze wél in het
+        // bestand staat. (#345)
+        activeDoc.textEdits = [];
         // reloadFromBytes is voor structurele edits en markeert het document
         // als gewijzigd; deze save heeft alles net weggeschreven.
         markDocumentSaved();
