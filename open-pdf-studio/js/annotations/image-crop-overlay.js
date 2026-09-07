@@ -1,16 +1,21 @@
 // ============================================================================
-// Interactive image-crop overlay.
+// Interactieve bijsnij-overlay voor afbeeldingen.
 //
-// Activated from the contextual "Afbeelding" ribbon tab (Croppen button). While
-// active it draws a crop rectangle with draggable edge + corner handles inside
-// the selected image annotation and dims the trimmed-away border. Dragging a
-// handle updates the annotation's non-destructive crop fractions
-// (cropLeft/cropTop/cropRight/cropBottom, 0-1 per side — same fields used by the
-// properties panel and the saved AP stream, issue #212).
+// Geactiveerd vanuit de contextuele "Afbeelding"-ribbon (Croppen). Bijsnijden
+// knipt een stuk van de afbeelding af: de rechthoek van de annotatie wordt
+// LIVE kleiner terwijl je een greep sleept, de pixels blijven exact op hun
+// plek en op dezelfde schaal. De weggesneden rand blijft zolang de modus
+// actief is gedimd zichtbaar (het renderpad tekent dan de volledige bron),
+// zodat je een greep ook weer naar buiten kunt slepen.
 //
-// The overlay installs its own pointer handlers on the annotation canvas so it
-// stays fully isolated from the main tool dispatcher. The draw pass is invoked
-// from redrawAnnotations() via drawImageCropOverlay().
+// De bijsnijding wordt bewaard als fracties per zijde van de BRON
+// (cropLeft/Top/Right/Bottom — dezelfde velden als het eigenschappenpaneel en
+// de opgeslagen AP-stream, issue #212) plus de verkleinde rechthoek. De
+// geometrie zelf staat in crop-geometrie.js en is los getest.
+//
+// De overlay hangt eigen pointer-handlers aan het annotatiecanvas en blijft
+// zo los van de gereedschaps-dispatcher; het tekenen gebeurt vanuit
+// redrawAnnotations() via drawImageCropOverlay().
 // ============================================================================
 
 import { state, getActiveDocument } from '../core/state.js';
@@ -19,18 +24,17 @@ import { resolvePointerCoords } from '../tools/tool-context.js';
 import { redrawAnnotations, redrawContinuous } from './rendering.js';
 import { recordPropertyChange } from '../core/undo-manager.js';
 import { showProperties } from '../ui/panels/properties-panel.js';
+import { fracties, volledigVak, vensterOpVak, fractiesNaSleep, rectNaBijsnijden } from './crop-geometrie.js';
 
-// The annotation currently being cropped (null when inactive).
+// De annotatie die bijgesneden wordt (null = inactief).
 let _cropAnn = null;
-// Pre-edit snapshot fractions, used to build a single undo step on commit.
+// Toestand bij activering (rechthoek + fracties): Escape zet dit terug.
 let _snapshot = null;
-// Live drag state.
+// Lopende sleep.
 let _dragHandle = null; // 'l' | 'r' | 't' | 'b' | 'tl' | 'tr' | 'bl' | 'br'
 let _installed = false;
 
-const MIN_VISIBLE = 0.1; // keep at least 10% of the source visible per axis
-
-function clampFrac(v) { return Math.max(0, Math.min(0.9, v || 0)); }
+const GREPEN = ['tl', 'tr', 'bl', 'br', 't', 'b', 'l', 'r'];
 
 function redraw() {
   if (getActiveDocument()?.viewMode === 'continuous') redrawContinuous();
@@ -45,36 +49,34 @@ function effScale() {
   return (doc?.scale || 1.5) * dpr;
 }
 
-// Compute the crop rect (app-space, un-rotated) from the annotation + fractions.
-function cropRect(ann) {
-  const cl = clampFrac(ann.cropLeft), ct = clampFrac(ann.cropTop);
-  const cr = clampFrac(ann.cropRight), cb = clampFrac(ann.cropBottom);
+function maakSnapshot(ann) {
   return {
-    x: ann.x + ann.width * cl,
-    y: ann.y + ann.height * ct,
-    w: ann.width * (1 - cl - cr),
-    h: ann.height * (1 - ct - cb),
+    x: ann.x, y: ann.y, width: ann.width, height: ann.height,
+    cropLeft: ann.cropLeft || 0, cropTop: ann.cropTop || 0,
+    cropRight: ann.cropRight || 0, cropBottom: ann.cropBottom || 0,
   };
 }
 
-// Handle centre points in app-space (un-rotated local frame).
+const rectVan = (ann) => ({ x: ann.x, y: ann.y, width: ann.width, height: ann.height });
+
+// Greep-middelpunten in app-ruimte (lokaal, ongedraaid frame): de grepen
+// liggen op de rechthoek zelf — dat ís het venster.
 function handlePoints(ann) {
-  const r = cropRect(ann);
-  const mx = r.x + r.w / 2, my = r.y + r.h / 2;
+  const r = rectVan(ann);
+  const mx = r.x + r.width / 2, my = r.y + r.height / 2;
   return {
-    tl: { x: r.x, y: r.y }, tr: { x: r.x + r.w, y: r.y },
-    bl: { x: r.x, y: r.y + r.h }, br: { x: r.x + r.w, y: r.y + r.h },
-    t: { x: mx, y: r.y }, b: { x: mx, y: r.y + r.h },
-    l: { x: r.x, y: my }, r: { x: r.x + r.w, y: my },
+    tl: { x: r.x, y: r.y }, tr: { x: r.x + r.width, y: r.y },
+    bl: { x: r.x, y: r.y + r.height }, br: { x: r.x + r.width, y: r.y + r.height },
+    t: { x: mx, y: r.y }, b: { x: mx, y: r.y + r.height },
+    l: { x: r.x, y: my }, r: { x: r.x + r.width, y: my },
   };
 }
 
-// Map a screen PointerEvent to the annotation's un-rotated local app-space.
+// Scherm-PointerEvent → het ongedraaide lokale frame van de annotatie
+// (rotatie om het middelpunt van de HUIDIGE rechthoek, net als het renderpad).
 function toLocal(e, ann) {
   const c = resolvePointerCoords(e);
   let px = c.x, py = c.y;
-  // Undo the annotation rotation about its centre so hit-testing / dragging
-  // work in the same local frame the crop fractions live in.
   if (ann.rotation) {
     const cx = ann.x + ann.width / 2, cy = ann.y + ann.height / 2;
     const a = -ann.rotation * Math.PI / 180;
@@ -86,9 +88,9 @@ function toLocal(e, ann) {
 }
 
 function hitHandle(local, ann) {
-  const tol = 10 / effScale(); // ~10 screen px
+  const tol = 10 / effScale(); // ~10 schermpixels
   const pts = handlePoints(ann);
-  for (const key of ['tl', 'tr', 'bl', 'br', 't', 'b', 'l', 'r']) {
+  for (const key of GREPEN) {
     const p = pts[key];
     if (Math.abs(local.x - p.x) <= tol && Math.abs(local.y - p.y) <= tol) return key;
   }
@@ -109,7 +111,6 @@ function onPointerDown(e) {
 function onPointerMove(e) {
   if (!_cropAnn) return;
   if (!_dragHandle) {
-    // Hover cursor feedback.
     const local = toLocal(e, _cropAnn);
     const h = hitHandle(local, _cropAnn);
     if (annotationCanvas) {
@@ -125,14 +126,15 @@ function onPointerMove(e) {
   e.stopPropagation();
   const ann = _cropAnn;
   const local = toLocal(e, ann);
-  // Convert the pointer position into fractions along each axis.
-  const fx = (local.x - ann.x) / ann.width;
-  const fy = (local.y - ann.y) / ann.height;
-  const h = _dragHandle;
-  if (h.includes('l')) ann.cropLeft = Math.max(0, Math.min(fx, 1 - (ann.cropRight || 0) - MIN_VISIBLE));
-  if (h.includes('r')) ann.cropRight = Math.max(0, Math.min(1 - fx, 1 - (ann.cropLeft || 0) - MIN_VISIBLE));
-  if (h.includes('t')) ann.cropTop = Math.max(0, Math.min(fy, 1 - (ann.cropBottom || 0) - MIN_VISIBLE));
-  if (h.includes('b')) ann.cropBottom = Math.max(0, Math.min(1 - fy, 1 - (ann.cropTop || 0) - MIN_VISIBLE));
+  // Nieuwe fracties t.o.v. het volledige vak, dan de rechthoek daarop
+  // verkleinen/vergroten — pixels blijven staan, ook bij een gedraaide
+  // afbeelding (het middelpunt draait mee).
+  const f0 = fracties(ann);
+  const vak = volledigVak(rectVan(ann), f0);
+  const f1 = fractiesNaSleep(vak, f0, _dragHandle, local);
+  const nieuw = rectNaBijsnijden(rectVan(ann), vensterOpVak(vak, f1), ann.rotation || 0);
+  ann.cropLeft = f1.l; ann.cropTop = f1.t; ann.cropRight = f1.r; ann.cropBottom = f1.b;
+  ann.x = nieuw.x; ann.y = nieuw.y; ann.width = nieuw.width; ann.height = nieuw.height;
   redraw();
 }
 
@@ -142,34 +144,45 @@ function onPointerUp(e) {
   try { annotationCanvas?.releasePointerCapture?.(e.pointerId); } catch (_) { /* ignore */ }
   const ann = _cropAnn;
   if (ann && _snapshot) {
-    // Only record undo if something actually changed since activation.
-    const changed = ['cropLeft', 'cropTop', 'cropRight', 'cropBottom']
-      .some(k => (ann[k] || 0) !== (_snapshot[k] || 0));
+    const nu = maakSnapshot(ann);
+    const changed = Object.keys(nu).some(k => nu[k] !== _snapshot[k]);
     if (changed) {
-      // Temporarily restore the snapshot so recordPropertyChange captures the
-      // pre-crop state, then re-apply the new crop.
-      const now = { cropLeft: ann.cropLeft, cropTop: ann.cropTop, cropRight: ann.cropRight, cropBottom: ann.cropBottom };
+      // Snapshot even terugzetten zodat recordPropertyChange de toestand van
+      // vóór deze sleep vastlegt, en daarna de nieuwe toestand herstellen.
       Object.assign(ann, _snapshot);
       recordPropertyChange(ann);
-      Object.assign(ann, now);
+      Object.assign(ann, nu);
       ann.modifiedAt = new Date().toISOString();
-      _snapshot = { cropLeft: ann.cropLeft, cropTop: ann.cropTop, cropRight: ann.cropRight, cropBottom: ann.cropBottom };
+      _snapshot = nu;
       showProperties(ann);
+      redraw();
     }
   }
 }
 
 function onKeyDown(e) {
-  // Enter commits the crop (bakes it into the geometry); Escape cancels it and
-  // restores the pre-edit fractions. Both leave crop mode via the ribbon store,
-  // which calls back into stopImageCrop() — so we don't stop here directly.
+  // Enter sluit de modus (de bijsnijding staat al in de annotatie); Escape
+  // zet de toestand van bij activering terug. Beide verlaten de modus via de
+  // ribbon-store, die terug in stopImageCrop() komt.
   if (e.key === 'Enter') {
     e.preventDefault();
     import('../solid/stores/imageEditStore.js').then(m => m.stopCropMode(true)).catch(() => {});
   } else if (e.key === 'Escape') {
     e.preventDefault();
-    if (_cropAnn && _snapshot) Object.assign(_cropAnn, _snapshot); // revert crop
+    herstelSnapshot();
     import('../solid/stores/imageEditStore.js').then(m => m.stopCropMode(false)).catch(() => {});
+  }
+}
+
+function herstelSnapshot() {
+  if (!_cropAnn || !_snapshot) return;
+  const ann = _cropAnn;
+  const nu = maakSnapshot(ann);
+  if (Object.keys(nu).some(k => nu[k] !== _snapshot[k])) {
+    recordPropertyChange(ann);
+    Object.assign(ann, _snapshot);
+    ann.modifiedAt = new Date().toISOString();
+    showProperties(ann);
   }
 }
 
@@ -192,58 +205,22 @@ function uninstall() {
   _installed = false;
 }
 
-// Public API ----------------------------------------------------------------
+// Publieke API ----------------------------------------------------------------
 
 export function startImageCrop(ann) {
   if (!ann || ann.type !== 'image') return false;
   _cropAnn = ann;
-  _snapshot = {
-    cropLeft: ann.cropLeft || 0, cropTop: ann.cropTop || 0,
-    cropRight: ann.cropRight || 0, cropBottom: ann.cropBottom || 0,
-  };
+  _snapshot = maakSnapshot(ann);
   state.imageCropMode = true;
   install();
   redraw();
   return true;
 }
 
-// Bake the current crop into the annotation geometry: shrink width/height (and
-// reposition x/y) to the on-page crop rectangle so the visible image is
-// genuinely smaller and stays that way after saving.
-//
-// The crop FRACTIONS are preserved on purpose. They describe which window of
-// the *source* image is shown; the render path (rendering.js) slices that
-// window and maps it onto the full annotation rect. Because the new rect equals
-// the window's current on-page box, the same source window now maps onto the
-// smaller rect at the same position → identical pixels, but the annotation's
-// dimensions have actually shrunk. Trimmed-away source stays available, so a
-// later crop pass can drag handles back outward to reveal it.
-//
-// A single undo step (recordPropertyChange) captures the whole geometry commit.
-function commitCrop(ann) {
-  if (!ann) return;
-  const cl = clampFrac(ann.cropLeft), ct = clampFrac(ann.cropTop);
-  const cr = clampFrac(ann.cropRight), cb = clampFrac(ann.cropBottom);
-  if (!(cl || ct || cr || cb)) return; // nothing cropped
-  const r = cropRect(ann);
-  if (r.w <= 0 || r.h <= 0) return;
-
-  recordPropertyChange(ann);
-  ann.x = r.x; ann.y = r.y;
-  ann.width = r.w; ann.height = r.h;
-  ann.modifiedAt = new Date().toISOString();
-  showProperties(ann);
-
-  // Refresh the pre-edit snapshot so a subsequent commit in the same session
-  // diffs against the new baked geometry.
-  _snapshot = {
-    cropLeft: ann.cropLeft || 0, cropTop: ann.cropTop || 0,
-    cropRight: ann.cropRight || 0, cropBottom: ann.cropBottom || 0,
-  };
-}
-
-export function stopImageCrop(commit = true) {
-  if (commit && _cropAnn && !_cropAnn.locked) commitCrop(_cropAnn);
+// De bijsnijding staat tijdens het slepen al in de annotatie; stoppen hoeft
+// niets meer in te bakken. De parameter blijft voor de aanroepers bestaan
+// (Escape heeft de toestand zelf al teruggezet vóór hij hier komt).
+export function stopImageCrop(_commit = true) {
   uninstall();
   _cropAnn = null;
   _snapshot = null;
@@ -254,9 +231,11 @@ export function stopImageCrop(commit = true) {
 
 export function isImageCropActive() { return !!_cropAnn; }
 
-// Draw the crop overlay. Called from redrawAnnotations() in the annotation
-// canvas' app-space (already scaled/translated). No-op when inactive or when
-// the cropped annotation isn't on the current page.
+/** De annotatie die nu bijgesneden wordt (voor het renderpad), of null. */
+export function activeCropAnnotation() { return _cropAnn; }
+
+// Tekent de overlay in de app-ruimte van het annotatiecanvas. Geen effect
+// als de modus uit staat of de annotatie niet op de huidige pagina ligt.
 export function drawImageCropOverlay(ctx, curPage) {
   const ann = _cropAnn;
   if (!ann) return;
@@ -264,7 +243,6 @@ export function drawImageCropOverlay(ctx, curPage) {
 
   const sc = effScale();
   ctx.save();
-  // Match the image's rotation so the overlay tracks a rotated image.
   if (ann.rotation) {
     const cx = ann.x + ann.width / 2, cy = ann.y + ann.height / 2;
     ctx.translate(cx, cy);
@@ -272,41 +250,40 @@ export function drawImageCropOverlay(ctx, curPage) {
     ctx.translate(-cx, -cy);
   }
 
-  const r = cropRect(ann);
+  const r = rectVan(ann);
+  const vak = volledigVak(r, fracties(ann));
 
-  // Dim the trimmed-away border (everything in the image rect outside crop).
+  // Weggesneden rand dimmen: alles van het volledige vak buiten de rechthoek.
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.beginPath();
-  ctx.rect(ann.x, ann.y, ann.width, ann.height);
-  ctx.rect(r.x, r.y, r.w, r.h);
+  ctx.rect(vak.x, vak.y, vak.w, vak.h);
+  ctx.rect(r.x, r.y, r.width, r.height);
   ctx.fill('evenodd');
 
-  // Crop rectangle border.
+  // Rand van het venster.
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 1 / sc;
   ctx.setLineDash([]);
-  ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.strokeRect(r.x, r.y, r.width, r.height);
 
-  // Rule-of-thirds guide lines.
+  // Derden-hulplijnen.
   ctx.strokeStyle = 'rgba(255,255,255,0.4)';
   ctx.beginPath();
   for (let i = 1; i <= 2; i++) {
-    ctx.moveTo(r.x + (r.w * i) / 3, r.y);
-    ctx.lineTo(r.x + (r.w * i) / 3, r.y + r.h);
-    ctx.moveTo(r.x, r.y + (r.h * i) / 3);
-    ctx.lineTo(r.x + r.w, r.y + (r.h * i) / 3);
+    ctx.moveTo(r.x + (r.width * i) / 3, r.y);
+    ctx.lineTo(r.x + (r.width * i) / 3, r.y + r.height);
+    ctx.moveTo(r.x, r.y + (r.height * i) / 3);
+    ctx.lineTo(r.x + r.width, r.y + (r.height * i) / 3);
   }
   ctx.stroke();
 
-  // Handles — Windows-style solid black squares (~8 screen px) on the 4 corners
-  // and 4 edge midpoints, matching the selection/resize grips. A thin white
-  // outline keeps them visible over dark image content.
+  // Grepen — zwarte vierkantjes (~8 schermpixels) met witte rand.
   const hs = 8 / sc;
   const pts = handlePoints(ann);
   ctx.fillStyle = '#000000';
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 1 / sc;
-  for (const key of ['tl', 'tr', 'bl', 'br', 't', 'b', 'l', 'r']) {
+  for (const key of GREPEN) {
     const p = pts[key];
     ctx.fillRect(p.x - hs / 2, p.y - hs / 2, hs, hs);
     ctx.strokeRect(p.x - hs / 2, p.y - hs / 2, hs, hs);

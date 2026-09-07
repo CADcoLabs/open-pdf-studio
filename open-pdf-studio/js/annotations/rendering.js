@@ -24,7 +24,8 @@ import { drawSysteemrasterGeom } from './rendering/systeemraster-draw.js';
 import { getSysteemSymbolImage, registerSysteemSymbolRedraw } from './rendering/systeem-symbol-cache.js';
 import { getAnnotationType } from '../plugins/annotation-type-registry.js';
 import { drawSelectionHandles } from './rendering/selection.js';
-import { drawImageCropOverlay } from './image-crop-overlay.js';
+import { drawImageCropOverlay, activeCropAnnotation } from './image-crop-overlay.js';
+import { fracties as cropFracties, volledigVak as cropVolledigVak } from './crop-geometrie.js';
 import { drawEmbeddedImageOverlay } from '../tools/tools/remove-image-tool.js';
 import { updateQuickAccessButtons, updateContextualTabs, drawGrid, snapToGrid } from './rendering/ui-state.js';
 import { drawCommentIcon } from './rendering/comment-icons.js';
@@ -1229,7 +1230,19 @@ export function drawAnnotation(ctx, annotation) {
         // .naturalWidth — support both so crop works with and without tint.
         const srcW = imgSrc.naturalWidth || imgSrc.width || 0;
         const srcH = imgSrc.naturalHeight || imgSrc.height || 0;
-        if ((cropL || cropT || cropR || cropB) && cropW > 0 && cropH > 0 && srcW > 0 && srcH > 0) {
+        if (activeCropAnnotation() === annotation && srcW > 0 && srcH > 0) {
+          // Bijsnij-modus: de VOLLEDIGE bron tekenen op het vak waar hij
+          // hoort, zodat de weggesneden rand (gedimd door de overlay)
+          // zichtbaar blijft en een greep weer naar buiten kan. De
+          // rechthoek is het venster op dat vak (zie crop-geometrie.js).
+          const vak = cropVolledigVak(
+            { x: annotation.x, y: annotation.y, width: annotation.width, height: annotation.height },
+            cropFracties(annotation),
+          );
+          const cxA = annotation.x + annotation.width / 2;
+          const cyA = annotation.y + annotation.height / 2;
+          ctx.drawImage(imgSrc, vak.x - cxA, vak.y - cyA, vak.w, vak.h);
+        } else if ((cropL || cropT || cropR || cropB) && cropW > 0 && cropH > 0 && srcW > 0 && srcH > 0) {
           ctx.drawImage(imgSrc,
             srcW * cropL, srcH * cropT, srcW * cropW, srcH * cropH,
             -annotation.width / 2, -annotation.height / 2, annotation.width, annotation.height);
