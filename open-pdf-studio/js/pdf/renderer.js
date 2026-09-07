@@ -1,5 +1,6 @@
 import { state, getActiveDocument, getPageRotation, setPageRotation } from '../core/state.js';
 import { isTauri, invoke } from '../core/platform.js';
+import { pdfjsFallbackNodig } from './render-route.js';
 // Always-fresh DOM refs (never stale regardless of init timing or bundler behavior)
 function getPdfCanvas() { return document.getElementById('pdf-canvas'); }
 function getAnnotationCanvas() { return document.getElementById('annotation-canvas'); }
@@ -537,7 +538,11 @@ async function _renderPageImpl(pageNum) {
   // from the previous document (or remains at its previous oversized
   // dimensions) — the user sees "one big white screen" instead of an A4
   // page. Render directly to pdf-canvas via PDF.js for blank docs.
-  if (!_hasFilePath && !_skipBitmapRender) {
+  if (pdfjsFallbackNodig({
+    inTauri: _canUseTauri,
+    hasFilePath: _hasFilePath,
+    viewportNamHetOver: _skipBitmapRender,
+  })) {
     try {
       // Also deactivate the viewport singleton if it's leftover-active from
       // a previously-opened real PDF — its RAF loop would otherwise repaint
@@ -549,24 +554,11 @@ async function _renderPageImpl(pageNum) {
         _vpMod.viewport.currentBitmap = null;
       }
 
-      const dpr = getCanvasDPR();
-      pdfCanvas.width = Math.floor(viewport.width * dpr);
-      pdfCanvas.height = Math.floor(viewport.height * dpr);
-      pdfCanvas.style.width = Math.floor(viewport.width) + 'px';
-      pdfCanvas.style.height = Math.floor(viewport.height) + 'px';
-      const pdfCtx = pdfCanvas.getContext('2d');
-      pdfCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      pdfCtx.fillStyle = '#ffffff';
-      pdfCtx.fillRect(0, 0, viewport.width, viewport.height);
-      await page.render({
-        canvasContext: pdfCtx,
-        viewport,
-        annotationMode: 0,
-      }).promise;
+      await tekenPaginaMetPdfJs(page, viewport, pdfCanvas);
       if (_isStaleDoc(doc)) return;
       state.renderEngine = 'Raster (PDF.js)';
     } catch (e) {
-      console.warn('[render] Blank-doc PDF.js render failed:', e);
+      console.warn('[render] PDF.js-render mislukt:', e);
     }
   }
 
@@ -677,6 +669,22 @@ async function _renderPageImpl(pageNum) {
   console.log(`[PERF] renderPage(${pageNum}) TOTAL: ${(performance.now() - _rp0).toFixed(0)}ms`);
 }
 
+// Tekent één pagina met PDF.js op een canvas. Gebruikt door élk pad dat
+// PDFium niet kan aanroepen: de webversie (geen Tauri) en lege documenten
+// zonder bestandspad. Zie render-route.js voor wanneer dit pad geldt.
+async function tekenPaginaMetPdfJs(page, viewport, canvas) {
+  const dpr = getCanvasDPR();
+  canvas.width = Math.floor(viewport.width * dpr);
+  canvas.height = Math.floor(viewport.height * dpr);
+  canvas.style.width = Math.floor(viewport.width) + 'px';
+  canvas.style.height = Math.floor(viewport.height) + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, viewport.width, viewport.height);
+  await page.render({ canvasContext: ctx, viewport, annotationMode: 0 }).promise;
+}
+
 // Render page offscreen and swap canvases atomically to avoid zoom flicker.
 // The visible canvas keeps its CSS-scaled content until the new render is done.
 export async function renderPageOffscreen(pageNum) {
@@ -708,45 +716,57 @@ export async function renderPageOffscreen(pageNum) {
   // Deactivate the vector viewport singleton — same reason as renderPage().
   if (window.__pdfViewport) window.__pdfViewport.active = false;
 
-  if (!isTauri() || !doc.filePath) {
-    state.renderEngine = 'UNSUPPORTED';
-    console.error('[render-offscreen] HARD ERROR: cannot render without Tauri+filePath. NO FALLBACK.');
-    return;
-  }
-  try {
-    const { renderPdfPage } = await import('./engine-router.js');
-    const rgbaData = await renderPdfPage({
-      path: doc.filePath,
-      pageIndex: pageNum - 1,
-      scale: scale,
-    });
-    if (_isStaleDoc(doc)) return;
-    const _offBytes = rgbaData instanceof Uint8Array ? rgbaData : new Uint8Array(rgbaData);
-    if (!_offBytes || _offBytes.length <= 8) {
+  // Zonder Tauri (webversie) of zonder bestandspad kan PDFium niet; dan tekent
+  // PDF.js. Dit is GEEN stille terugval voor een Rust-fout — die blijft hard
+  // falen hieronder, zodat een rasterbug zichtbaar blijft.
+  if (pdfjsFallbackNodig({ inTauri: isTauri(), hasFilePath: !!doc.filePath })) {
+    try {
+      await tekenPaginaMetPdfJs(page, viewport, pdfCanvas);
+      if (_isStaleDoc(doc)) return;
+      setupCanvasHiDPI(annotationCanvas, viewport.width, viewport.height);
+      redrawAnnotations();
+      state.renderEngine = 'Raster (PDF.js)';
+    } catch (e) {
       state.renderEngine = 'ERROR';
-      console.error('[render-offscreen] HARD ERROR: Rust returned empty buffer. NO FALLBACK.');
+      console.warn('[render-offscreen] PDF.js-render mislukt:', e);
       return;
     }
-    const headerView = new DataView(_offBytes.buffer, _offBytes.byteOffset, 8);
-    const rustW = headerView.getUint32(0, true);
-    const rustH = headerView.getUint32(4, true);
-    const rgba = new Uint8ClampedArray(_offBytes.buffer, _offBytes.byteOffset + 8, _offBytes.length - 8);
-    pdfCanvas.width = rustW;
-    pdfCanvas.height = rustH;
-    pdfCanvas.style.width = Math.floor(viewport.width) + 'px';
-    pdfCanvas.style.height = Math.floor(viewport.height) + 'px';
-    const imageData = new ImageData(rgba, rustW, rustH);
-    pdfCanvas.getContext('2d').putImageData(imageData, 0, 0);
-    // Resize wist het overlay-canvas: direct synchron hertekenen zodat
-    // afdekbeelden van text-edits/annotaties geen frame verdwijnen (zelfde
-    // "no blink"-regel als verderop in renderPage).
-    setupCanvasHiDPI(annotationCanvas, viewport.width, viewport.height);
-    redrawAnnotations();
-    state.renderEngine = 'Raster (PDFium)';
-  } catch (e) {
-    state.renderEngine = 'ERROR';
-    console.error('[render-offscreen] HARD ERROR: Rust render threw. NO FALLBACK.', e);
-    return;
+  } else {
+    try {
+      const { renderPdfPage } = await import('./engine-router.js');
+      const rgbaData = await renderPdfPage({
+        path: doc.filePath,
+        pageIndex: pageNum - 1,
+        scale: scale,
+      });
+      if (_isStaleDoc(doc)) return;
+      const _offBytes = rgbaData instanceof Uint8Array ? rgbaData : new Uint8Array(rgbaData);
+      if (!_offBytes || _offBytes.length <= 8) {
+        state.renderEngine = 'ERROR';
+        console.error('[render-offscreen] HARD ERROR: Rust returned empty buffer. NO FALLBACK.');
+        return;
+      }
+      const headerView = new DataView(_offBytes.buffer, _offBytes.byteOffset, 8);
+      const rustW = headerView.getUint32(0, true);
+      const rustH = headerView.getUint32(4, true);
+      const rgba = new Uint8ClampedArray(_offBytes.buffer, _offBytes.byteOffset + 8, _offBytes.length - 8);
+      pdfCanvas.width = rustW;
+      pdfCanvas.height = rustH;
+      pdfCanvas.style.width = Math.floor(viewport.width) + 'px';
+      pdfCanvas.style.height = Math.floor(viewport.height) + 'px';
+      const imageData = new ImageData(rgba, rustW, rustH);
+      pdfCanvas.getContext('2d').putImageData(imageData, 0, 0);
+      // Resize wist het overlay-canvas: direct synchron hertekenen zodat
+      // afdekbeelden van text-edits/annotaties geen frame verdwijnen (zelfde
+      // "no blink"-regel als verderop in renderPage).
+      setupCanvasHiDPI(annotationCanvas, viewport.width, viewport.height);
+      redrawAnnotations();
+      state.renderEngine = 'Raster (PDFium)';
+    } catch (e) {
+      state.renderEngine = 'ERROR';
+      console.error('[render-offscreen] HARD ERROR: Rust render threw. NO FALLBACK.', e);
+      return;
+    }
   }
 
   // Set CSS scale variables for text/annotation layers
@@ -1116,11 +1136,8 @@ async function renderContinuousPage(pageNum) {
   // showing a slow-rendered PDF.js fallback that hides the actual Rust bug).
   const pdfCtxEl = pdfCanvasEl.getContext('2d');
 
-  if (!isTauri() || !doc.filePath) {
-    state.renderEngine = 'UNSUPPORTED';
-    console.error(`[render-continuous] HARD ERROR: page ${pageNum} cannot render without Tauri+filePath. NO FALLBACK.`);
-    return;
-  }
+  // Webversie/documenten zonder pad: PDF.js tekent. Zie render-route.js.
+  const _pdfjsPad = pdfjsFallbackNodig({ inTauri: isTauri(), hasFilePath: !!doc.filePath });
 
   // ─── PERF FIX #1 + #2 + #3 (BARN measurement scaffold) ───────────────
   //  #1: Drop the DPR multiplier — single-page mode renders at bare
@@ -1159,7 +1176,15 @@ async function renderContinuousPage(pageNum) {
   console.time(label + ' cache-lookup');
   const _cached = _bitmapJSCacheGet(_jsCacheKey);
   console.timeEnd(label + ' cache-lookup');
-  if (_cached) {
+  if (_pdfjsPad) {
+    try {
+      await tekenPaginaMetPdfJs(page, viewport, pdfCanvasEl);
+      state.renderEngine = 'Raster (PDF.js)';
+    } catch (e) {
+      console.warn(`[render-continuous] PDF.js-render van pagina ${pageNum} mislukt:`, e);
+    }
+    console.timeEnd(label);
+  } else if (_cached) {
     console.time(label + ' canvas-draw-cached');
     pdfCanvasEl.width = _cached.w;
     pdfCanvasEl.height = _cached.h;
