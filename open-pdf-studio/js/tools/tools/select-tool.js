@@ -27,7 +27,10 @@ export const selectTool = {
     const selAnn = selAnns.length === 1 ? selAnns[0] : null;
     if (!pdfaLocked && selAnn) {
       const handleType = ctx.findHandleAt(x, y, selAnn);
-      if (handleType) {
+      // Ctrl op de middengreep (verplaats-greep) is geen verplaatsing maar
+      // een kopie: doorvallen naar de Ctrl-tak bij de annotatie-klik.
+      const ctrlKopieViaGreep = (e.ctrlKey || e.metaKey) && handleType === 'rect_center';
+      if (handleType && !ctrlKopieViaGreep) {
         // Edit-contour mode: clicking an edge midpoint inserts a new vertex
         // there and immediately enters drag mode for that new vertex.
         if (state.editingContour === selAnn.id && typeof handleType === 'string' &&
@@ -146,11 +149,14 @@ export const selectTool = {
         // Re-read after potential addToSelection
         const selAnns2 = () => doc ? doc.selectedAnnotations : [];
         if (ctx.isSelected(clickedAnnotation)) {
-          // Ctrl+click on already selected: initiate Ctrl+drag copy
+          // Ctrl+click on already selected: initiate Ctrl+drag copy. Blijft
+          // de muis staan (klik zonder sleep), dan maakt de dispatcher bij
+          // het loslaten alsnog een nieuwe instantie op dezelfde plek.
           if (!pdfaLocked) {
             state.isDragging = true;
             state._ctrlDragCopy = true;
             state._ctrlCopiesCreated = false;
+            state._ctrlClickOpGeselecteerd = true;
             state.originalAnnotations = selAnns2().map(a => ctx.cloneAnnotation(a));
             if (selAnns2().length === 1) {
               state.originalAnnotation = ctx.cloneAnnotation(selAnns2()[0]);

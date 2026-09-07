@@ -685,39 +685,7 @@ function _handleDrag(ctx, e, coords) {
   // goes through the edit-ops primitive (cloneForInsert) — same identity
   // convention as CO and the array tool.
   if (state._ctrlDragCopy && !state._ctrlCopiesCreated && (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2)) {
-    const selected = _dSel;
-    const originals = state.originalAnnotations;
-
-    try {
-      if (selected.length > 1) {
-        for (let i = 0; i < selected.length; i++) {
-          if (originals[i]) Object.assign(selected[i], cloneAnnotation(originals[i]));
-        }
-        const copies = originals.map(orig => {
-          const copy = cloneForInsert(orig);
-          if (_dDoc) _dDoc.annotations.push(copy);
-          return copy;
-        });
-        if (_dDoc) { _dDoc.selectedAnnotations = copies; _dDoc.selectedAnnotation = copies[0] || null; }
-        state.originalAnnotations = copies.map(c => cloneAnnotation(c));
-        state._ctrlCopiesCreated = true;
-      } else if (selected.length === 1) {
-        const ann = selected[0];
-        const orig = state.originalAnnotation || originals[0];
-        if (ann && orig) {
-          Object.assign(ann, cloneAnnotation(orig));
-          const copy = cloneForInsert(orig);
-          if (_dDoc) _dDoc.annotations.push(copy);
-          if (_dDoc) { _dDoc.selectedAnnotations = [copy]; _dDoc.selectedAnnotation = copy; }
-          state.originalAnnotation = cloneAnnotation(copy);
-          state.originalAnnotations = [cloneAnnotation(copy)];
-          state._ctrlCopiesCreated = true;
-          showProperties(copy);
-        }
-      }
-    } catch (err) {
-      console.error('[dispatcher] copy error:', err);
-    }
+    _maakCtrlKopieen(_dDoc, _dSel);
   }
 
   // Re-read after potential copy (selectedAnnotations may have changed)
@@ -799,9 +767,52 @@ function _annotationChanged(oldState, newState) {
   return false;
 }
 
+// Maakt de Ctrl-kopieën van de huidige selectie: de originelen krijgen hun
+// begintoestand terug, de kopieën worden de selectie (en het sleepdoel).
+function _maakCtrlKopieen(doc, selected) {
+  const originals = state.originalAnnotations;
+  try {
+    if (selected.length > 1) {
+      for (let i = 0; i < selected.length; i++) {
+        if (originals[i]) Object.assign(selected[i], cloneAnnotation(originals[i]));
+      }
+      const copies = originals.map(orig => {
+        const copy = cloneForInsert(orig);
+        if (doc) doc.annotations.push(copy);
+        return copy;
+      });
+      if (doc) { doc.selectedAnnotations = copies; doc.selectedAnnotation = copies[0] || null; }
+      state.originalAnnotations = copies.map(c => cloneAnnotation(c));
+      state._ctrlCopiesCreated = true;
+    } else if (selected.length === 1) {
+      const ann = selected[0];
+      const orig = state.originalAnnotation || originals[0];
+      if (ann && orig) {
+        Object.assign(ann, cloneAnnotation(orig));
+        const copy = cloneForInsert(orig);
+        if (doc) doc.annotations.push(copy);
+        if (doc) { doc.selectedAnnotations = [copy]; doc.selectedAnnotation = copy; }
+        state.originalAnnotation = cloneAnnotation(copy);
+        state.originalAnnotations = [cloneAnnotation(copy)];
+        state._ctrlCopiesCreated = true;
+        showProperties(copy);
+      }
+    }
+  } catch (err) {
+    console.error('[dispatcher] copy error:', err);
+  }
+}
+
 function _finishDragResize(ctx, e, coords) {
   const _fDoc = getActiveDocument();
   const _fSel = _fDoc ? _fDoc.selectedAnnotations : [];
+  // Ctrl+klik op een geselecteerd object zónder te slepen: nieuwe instantie
+  // op dezelfde plek, die meteen de selectie wordt. Ctrl+klik op een NIET
+  // geselecteerd object blijft alleen aan de selectie toevoegen.
+  if (state._ctrlDragCopy && !state._ctrlCopiesCreated && state._ctrlClickOpGeselecteerd) {
+    _maakCtrlKopieen(_fDoc, _fSel);
+  }
+  state._ctrlClickOpGeselecteerd = false;
   if (state._ctrlDragCopy && state._ctrlCopiesCreated) {
     recordBulkAdd(_fSel);
     markDocumentModified();
