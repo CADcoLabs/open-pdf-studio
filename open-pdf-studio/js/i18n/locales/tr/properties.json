@@ -55,6 +55,8 @@
     "color": "Renk",
     "opacity": "Opasite",
     "borderStyle": "Border Style",
+    "cross": "Cross",
+    "crossHint": "Draws both diagonals inside the rectangle",
     "lineWidth": "Çizgi Genişliği",
     "borderWidth": "Kenarlık Genişliği",
     "hatchPattern": "Hatch Pattern",

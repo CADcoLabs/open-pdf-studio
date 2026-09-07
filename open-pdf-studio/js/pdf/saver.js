@@ -514,6 +514,11 @@ async function _savePDFNu(saveAsPath) {
             if (hasFill(ann.fillColor)) {
               annDictObj.IC = hexToColorArray(ann.fillColor);
             }
+            // Kruis (beide diagonalen): privésleutel voor de rondgang; de
+            // AP-stream hieronder tekent de diagonalen ook voor andere lezers.
+            if (ann.type === 'box' && ann.cross) {
+              annDictObj.OPS_Cross = true;
+            }
             // Maskeer round-trips via the subtype key; other viewers see a
             // plain white-filled square (correct degradation).
             if (ann.type === 'mask') {

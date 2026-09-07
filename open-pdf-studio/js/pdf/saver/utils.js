@@ -202,6 +202,9 @@ export function generateAppearanceStream(context, ann, convertY) {
         } else {
           streamContent += `0 0 ${w} ${h} re S\n`;
         }
+        if (ann.type === 'box' && ann.cross) {
+          streamContent += `0 0 m ${w} ${h} l ${w} 0 m 0 ${h} l S\n`;
+        }
         break;
       }
       case 'circle': {

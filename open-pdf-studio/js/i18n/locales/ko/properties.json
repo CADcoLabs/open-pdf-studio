@@ -57,6 +57,8 @@
     "lineWidth": "선 너비",
     "borderWidth": "테두리 너비",
     "borderStyle": "Border Style",
+    "cross": "Cross",
+    "crossHint": "Draws both diagonals inside the rectangle",
     "hatchPattern": "Hatch Pattern",
     "hatchColor": "Hatch Color",
     "hatchScale": "Hatch Scale",

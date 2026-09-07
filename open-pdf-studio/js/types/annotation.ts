@@ -165,6 +165,8 @@ export type Annotation = AnnotationBase & {
   borderWidth?: number;
   // Hatch pattern
   hatchPattern?: string;
+  /** Rechthoek: beide diagonalen tekenen (kruis). */
+  cross?: boolean;
   hatchColor?: string;
   hatchScale?: number;
   hatchAngle?: number;

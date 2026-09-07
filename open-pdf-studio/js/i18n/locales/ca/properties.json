@@ -57,6 +57,8 @@
     "lineWidth": "Amplada de línia",
     "borderWidth": "Amplada de la vora",
     "borderStyle": "Border Style",
+    "cross": "Cross",
+    "crossHint": "Draws both diagonals inside the rectangle",
     "hatchPattern": "Hatch Pattern",
     "hatchColor": "Hatch Color",
     "hatchScale": "Hatch Scale",

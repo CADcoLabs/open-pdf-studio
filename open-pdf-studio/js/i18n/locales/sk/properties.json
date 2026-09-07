@@ -57,6 +57,8 @@
     "lineWidth": "Šírka čiary",
     "borderWidth": "Šírka okraja",
     "borderStyle": "Border Style",
+    "cross": "Cross",
+    "crossHint": "Draws both diagonals inside the rectangle",
     "hatchPattern": "Hatch Pattern",
     "hatchColor": "Hatch Color",
     "hatchScale": "Hatch Scale",

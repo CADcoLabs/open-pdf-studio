@@ -55,6 +55,8 @@
     "color": "Cor",
     "opacity": "Opacidade",
     "borderStyle": "Border Style",
+    "cross": "Cross",
+    "crossHint": "Draws both diagonals inside the rectangle",
     "lineWidth": "Largura da Linha",
     "borderWidth": "Largura da Borda",
     "hatchPattern": "Hatch Pattern",

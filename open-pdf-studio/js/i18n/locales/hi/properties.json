@@ -57,6 +57,8 @@
     "lineWidth": "रेखा चौड़ाई",
     "borderWidth": "बॉर्डर चौड़ाई",
     "borderStyle": "Border Style",
+    "cross": "Cross",
+    "crossHint": "Draws both diagonals inside the rectangle",
     "hatchPattern": "Hatch Pattern",
     "hatchColor": "Hatch Color",
     "hatchScale": "Hatch Scale",

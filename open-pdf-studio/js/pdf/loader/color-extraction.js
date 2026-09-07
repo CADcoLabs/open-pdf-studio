@@ -206,6 +206,13 @@ export async function extractAnnotationColors(pageNum, pdfDoc) {
         }
       }
 
+      // Kruis in een rechthoek (OPS_Cross, zie saver).
+      const opsCrossRaw = annotDict.get(PDFName.of('OPS_Cross'));
+      if (opsCrossRaw) {
+        const cv = context.lookup(opsCrossRaw) || opsCrossRaw;
+        if (cv === true || (cv && typeof cv.value === 'boolean' && cv.value)) colors.cross = true;
+      }
+
       // Read /OPS_Rotation (our custom rotation key) for ALL annotation types
       const opsRotRaw = annotDict.get(PDFName.of('OPS_Rotation'));
       if (opsRotRaw) {

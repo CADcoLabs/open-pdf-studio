@@ -759,6 +759,15 @@ export function drawAnnotation(ctx, annotation) {
       ctx.strokeStyle = strokeColor;
       applyBorderStyle(ctx, annotation.borderStyle);
       ctx.strokeRect(annotation.x, annotation.y, annotation.width, annotation.height);
+      // Kruis: beide diagonalen, in dezelfde lijnstijl als de rand.
+      if (annotation.cross) {
+        ctx.beginPath();
+        ctx.moveTo(annotation.x, annotation.y);
+        ctx.lineTo(annotation.x + annotation.width, annotation.y + annotation.height);
+        ctx.moveTo(annotation.x + annotation.width, annotation.y);
+        ctx.lineTo(annotation.x, annotation.y + annotation.height);
+        ctx.stroke();
+      }
       ctx.setLineDash([]);
       ctx.restore();
       break;

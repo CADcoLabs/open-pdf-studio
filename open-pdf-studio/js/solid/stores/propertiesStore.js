@@ -93,6 +93,7 @@ const [annotProps, setAnnotProps] = createStore({
   opacity: 100,
   icon: 'comment',
   borderStyle: 'solid',
+  cross: false,
   text: '',
   fontSize: 16,
   fontFamily: 'Arial',
@@ -257,6 +258,7 @@ function computeSectionVisibility(type) {
     lineWidthGroup: !hideLineWidth,
     borderStyleGroup: hasBorderStyle,
     hatchPatternGroup: hasHatchPattern,
+    crossGroup: type === 'box',
     textGroup: isTextContent,
     fontSizeGroup: type === 'text',
     opacityGroup: !isScaleBar,
@@ -304,6 +306,7 @@ export function storeShowProperties(annotation) {
     opacity: annotation.opacity !== undefined ? Math.round(annotation.opacity * 100) : 100,
     icon: annotation.icon || 'comment',
     borderStyle: annotation.borderStyle || 'solid',
+    cross: annotation.cross === true,
     hatchPattern: annotation.hatchPattern || (annotation.type === 'measureArea' ? 'diagonal-left' : 'none'),
     hatchColor: annotation.hatchColor || (annotation.type === 'measureArea' ? '#ff0000' : (annotation.strokeColor || annotation.color || '#000000')),
     hatchScale: annotation.hatchScale ?? 100,
@@ -596,6 +599,7 @@ export function storeShowMultiSelection(selected) {
     opacity: sharedOpacity,
     icon: sharedValue(selected, a => a.icon || 'comment', 'mixed'),
     borderStyle: sharedBorderStyle,
+    cross: sharedValue(selected, a => a.cross === true, 'mixed'),
     hatchPattern: sharedHatchPattern,
     hatchColor: sharedHatchColor,
     hatchScale: sharedHatchScale,
@@ -662,6 +666,7 @@ export function storeShowMultiSelection(selected) {
     lineWidthGroup: allMatch(t => !hideLineWidthTypes.has(t)),
     borderStyleGroup: allMatch(t => borderStyleTypes.has(t)),
     hatchPatternGroup: allMatch(t => hatchPatternTypes.has(t)),
+    crossGroup: allMatch(t => t === 'box'),
     textGroup: allSameType && (sharedType === 'text' || sharedType === 'comment'),
     fontSizeGroup: allSameType && sharedType === 'text',
     opacityGroup: true,
@@ -1000,6 +1005,7 @@ function applyPropToAnnotation(ann, key, value) {
     case 'opacity': ann.opacity = parseInt(value) / 100; break;
     case 'icon': ann.icon = value; break;
     case 'borderStyle': ann.borderStyle = value; break;
+    case 'cross': ann.cross = value === true || undefined; break;
     case 'hatchPattern': ann.hatchPattern = value; break;
     case 'hatchColor': ann.hatchColor = value; break;
     case 'hatchScale': ann.hatchScale = parseInt(value); break;
@@ -1343,6 +1349,7 @@ export function updateAnnotProp(key, value) {
       break;
     case 'icon': currentAnnotation.icon = value; break;
     case 'borderStyle': currentAnnotation.borderStyle = value; break;
+    case 'cross': currentAnnotation.cross = value === true || undefined; break;
     case 'hatchPattern': currentAnnotation.hatchPattern = value; break;
     case 'hatchColor': currentAnnotation.hatchColor = value; break;
     case 'hatchScale': currentAnnotation.hatchScale = parseInt(value); break;

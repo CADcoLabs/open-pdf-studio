@@ -191,6 +191,21 @@ export default function AppearanceSection() {
           </div>
         </Show>
 
+        {/* Kruis: beide diagonalen in een rechthoek (bijv. 'vervalt' of
+            'sparing' op een tekening). Round-tript via OPS_Cross. */}
+        <Show when={sectionVis.crossGroup}>
+          <div class="property-group">
+            <label style={{ display: 'flex', 'align-items': 'center', gap: '6px', cursor: 'pointer' }}
+              title={t('appearance.crossHint')}>
+              <input type="checkbox" id="prop-cross"
+                checked={annotProps.cross === true}
+                disabled={isLocked()}
+                onChange={(e) => updateAnnotProp('cross', e.target.checked)} />
+              {annotProps.cross === 'mixed' ? tCommon('mixed') : t('appearance.cross')}
+            </label>
+          </div>
+        </Show>
+
         <Show when={sectionVis.rotationGroup}>
           <div class="property-group">
             <label>{t('appearance.rotation')}</label>

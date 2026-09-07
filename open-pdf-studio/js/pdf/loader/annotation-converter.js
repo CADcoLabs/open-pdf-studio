@@ -361,6 +361,7 @@ export async function convertPdfAnnotation(annot, pageNum, viewport, stampImageM
         borderStyle: mapBorderStyle(annot, extraColors)
       };
       if (sqRotation) sqProps.rotation = sqRotation;
+      if (extraColors.cross && sqProps.type === 'box') sqProps.cross = true;
       return createAnnotation(sqProps);
     }
 
