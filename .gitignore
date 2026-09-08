@@ -40,6 +40,9 @@ nul
 !open-pdf-studio/assets/nen1414/**
 !snap/gui/open-pdf-studio.png
 !docs/screenshots/**
+# MAPI branding assets — must be tracked despite the blanket *.png rule
+!docs/images/**
+!open-pdf-studio/public/mapi-logo.png
 
 # Temporary files
 temp/
@@ -59,3 +62,7 @@ PROMPTS.md
 test pdf-bestanden/render-regression-runs/
 scripts/.venv-test/
 open-pdf-studio/dev-build-nr.json
+
+# Retired files, kept on disk rather than deleted (MAPI convention).
+# Not committed — git history already preserves anything that was tracked.
+DELETED/

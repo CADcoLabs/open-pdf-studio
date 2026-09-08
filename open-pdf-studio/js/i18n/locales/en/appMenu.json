@@ -20,12 +20,14 @@
     "featureFree": "Free forever, no subscriptions",
     "featureOpen": "Open source, transparent code",
     "featureNoLock": "No vendor lock-in, open formats",
-    "companyName": "OpenAEC Foundation",
-    "companyDescription": "Developing, supporting, and promoting open source software for the construction industry and beyond. Transparent pricing, transparent code.",
+    "companyName": "Mullet's Aluminum Products, Inc.",
+    "companyDescription": "Internal build maintained for Mullet's Aluminum Products, Inc. for drawing markup, measurement, and material takeoff.",
+    "upstreamCredit": "Built on Open PDF Studio, created by the OpenAEC Foundation.",
+    "upstreamProject": "Upstream project",
     "website": "Website",
     "contact": "Contact",
-    "copyright": "© 2026 OpenAEC Foundation",
-    "license": "Licensed under MIT. Free for personal and commercial use.",
+    "copyright": "© 2026 OpenAEC Foundation and contributors. MAPI modifications © 2026 Barry Adams / CADcoLabs.",
+    "license": "Licensed under LGPL-3.0.",
     "version": "Version"
   },
   "whatsNew": {

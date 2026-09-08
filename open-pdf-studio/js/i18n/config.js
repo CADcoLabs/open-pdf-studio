@@ -1,59 +1,22 @@
 import i18next from 'i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 
-// Locale bundles are loaded on demand, one language at a time, instead of
-// statically importing all 37 languages (296 JSON files) into the entry
-// chunk. Only English (the fallback) and the active language are fetched at
-// startup; switching language fetches that language's 8 namespace files on
-// first use. This keeps the main bundle small and startup parse/init fast.
+// Locale bundles are loaded through a glob so the namespace files stay split
+// out of the entry chunk. This build ships English only.
 const localeModules = import.meta.glob('./locales/*/*.json');
 
 const ns = ['common', 'ribbon', 'preferences', 'dialogs', 'appMenu', 'properties', 'context', 'statusbar'];
 
+// MAPI build: English only. The upstream project ships 39 languages; this
+// fork serves a single English-speaking organization, so the other 38 locale
+// bundles were removed (moved to DELETED/i18n-locales-non-english/ at the
+// repo root if they are ever needed again).
 export const LANGUAGES = [
-  { code: 'auto', name: 'Auto-detect', englishName: 'Auto-detect' },
-  { code: 'ar', name: 'العربية', englishName: 'Arabic', dir: 'rtl' },
-  { code: 'bn', name: 'বাংলা', englishName: 'Bengali' },
-  { code: 'bg', name: 'Български', englishName: 'Bulgarian' },
-  { code: 'ca', name: 'Català', englishName: 'Catalan' },
-  { code: 'zh', name: '中文', englishName: 'Chinese' },
-  { code: 'hr', name: 'Hrvatski', englishName: 'Croatian' },
-  { code: 'cs', name: 'Čeština', englishName: 'Czech' },
-  { code: 'da', name: 'Dansk', englishName: 'Danish' },
-  { code: 'nl', name: 'Nederlands', englishName: 'Dutch' },
   { code: 'en', name: 'English', englishName: 'English' },
-  { code: 'fa', name: 'فارسی', englishName: 'Farsi', dir: 'rtl' },
-  { code: 'fi', name: 'Suomi', englishName: 'Finnish' },
-  { code: 'fr', name: 'Français', englishName: 'French' },
-  { code: 'de', name: 'Deutsch', englishName: 'German' },
-  { code: 'el', name: 'Ελληνικά', englishName: 'Greek' },
-  { code: 'he', name: 'עברית', englishName: 'Hebrew', dir: 'rtl' },
-  { code: 'hi', name: 'हिन्दी', englishName: 'Hindi' },
-  { code: 'hu', name: 'Magyar', englishName: 'Hungarian' },
-  { code: 'id', name: 'Bahasa Indonesia', englishName: 'Indonesian' },
-  { code: 'it', name: 'Italiano', englishName: 'Italian' },
-  { code: 'ja', name: '日本語', englishName: 'Japanese' },
-  { code: 'ko', name: '한국어', englishName: 'Korean' },
-  { code: 'ms', name: 'Bahasa Melayu', englishName: 'Malay' },
-  { code: 'nb', name: 'Norsk', englishName: 'Norwegian' },
-  { code: 'pl', name: 'Polski', englishName: 'Polish' },
-  { code: 'pt', name: 'Português', englishName: 'Portuguese' },
-  { code: 'ro', name: 'Română', englishName: 'Romanian' },
-  { code: 'ru', name: 'Русский', englishName: 'Russian' },
-  { code: 'sr', name: 'Српски', englishName: 'Serbian' },
-  { code: 'sk', name: 'Slovenčina', englishName: 'Slovak' },
-  { code: 'es', name: 'Español', englishName: 'Spanish' },
-  { code: 'sw', name: 'Kiswahili', englishName: 'Swahili' },
-  { code: 'sv', name: 'Svenska', englishName: 'Swedish' },
-  { code: 'ta', name: 'தமிழ்', englishName: 'Tamil' },
-  { code: 'th', name: 'ไทย', englishName: 'Thai' },
-  { code: 'tr', name: 'Türkçe', englishName: 'Turkish' },
-  { code: 'uk', name: 'Українська', englishName: 'Ukrainian' },
-  { code: 'ur', name: 'اردو', englishName: 'Urdu', dir: 'rtl' },
-  { code: 'vi', name: 'Tiếng Việt', englishName: 'Vietnamese' },
 ];
 
-export const RTL_LANGUAGES = ['ar', 'fa', 'he', 'ur'];
+// No RTL languages ship in this build. isRTL() is kept so the callers that
+// ask about text direction keep working without change.
+export const RTL_LANGUAGES = [];
 
 export function isRTL(lang) {
   return RTL_LANGUAGES.includes(lang);
@@ -89,40 +52,23 @@ export async function loadLocale(lng) {
   loadedLanguages.add(base);
 }
 
-// Mirror the LanguageDetector order (localStorage, then navigator) so the
-// language it will pick is already loaded before init.
-function detectInitialLanguage() {
-  try {
-    const stored = localStorage.getItem('i18nextLng');
-    if (stored) return stored.split('-')[0];
-  } catch (_) { /* storage unavailable */ }
-  return (navigator.language || 'en').split('-')[0];
-}
-
 const initialResources = { en: await fetchLocale('en') };
 loadedLanguages.add('en');
 
-const initialLng = detectInitialLanguage();
-if (initialLng !== 'en' && isKnownLanguage(initialLng)) {
-  initialResources[initialLng] = await fetchLocale(initialLng);
-  loadedLanguages.add(initialLng);
-}
-
+// English-only build: no language detection. Detecting the OS language would
+// set i18next.language to a locale we no longer bundle — English strings would
+// still render via fallbackLng, but locale-dependent behaviour (text
+// direction, digit localisation) would follow the wrong language.
 i18next
-  .use(LanguageDetector)
   .init({
     resources: initialResources,
+    lng: 'en',
     ns,
     defaultNS: 'common',
     fallbackLng: 'en',
     showSupportNotice: false,
     interpolation: {
       escapeValue: false
-    },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      lookupLocalStorage: 'i18nextLng',
-      caches: []
     }
   });
 

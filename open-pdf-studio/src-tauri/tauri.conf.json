@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Open PDF Studio",
   "version": "1.95.0",
-  "identifier": "org.openaec.openpdfstudio",
+  "identifier": "com.cadcolabs.mapi.openpdfstudio",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:3041",
@@ -104,7 +104,7 @@
     },
     "updater": {
       "endpoints": [
-        "https://github.com/OpenAEC-Foundation/OpenPDFStudio/releases/latest/download/latest.json"
+        "https://updates.invalid.mapi.local/open-pdf-studio/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU4N0ZBNjRBREVFNDE2M0EKUldRNkZ1VGVTcVovV0xkNk53STYvdXExbWtkTThIdDdzS0JFdG5VTXBqUlpFOUYrcm1rYTA0eTYK"
     },

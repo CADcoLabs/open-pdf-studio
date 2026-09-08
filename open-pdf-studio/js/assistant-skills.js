@@ -1,4 +1,4 @@
-// OpenAEC-assistent skill set.
+// Assistant skill set.
 //
 // Each skill is a capability the assistant can perform on the open PDF. Clicking
 // a skill chip sends `invoke` as a user message; via the provider chain it reaches
@@ -7,39 +7,39 @@
 
 export const ASSISTANT_SKILLS = [
   {
-    id: 'translate',
-    icon: '🌐',
-    label: 'Vertaal',
-    hint: 'Vertaal de tekst van het document',
-    invoke: 'Vertaal de tekst van het geopende document. Is het Nederlands, vertaal dan naar het Engels; anders naar het Nederlands. Geef de vertaling overzichtelijk terug.',
-  },
-  {
     id: 'summarize',
     icon: '📝',
-    label: 'Vat samen',
-    hint: 'Vat het document of de tekening samen',
-    invoke: 'Vat het geopende document of de tekening bondig samen: waar gaat het over, de belangrijkste onderdelen en eventuele aandachtspunten.',
+    label: 'Summarize',
+    hint: 'Summarize the document or drawing',
+    invoke: 'Summarize the open document or drawing concisely: what it covers, the main components, and anything worth flagging.',
   },
   {
     id: 'draw',
     icon: '✏️',
-    label: 'Teken',
-    hint: 'Teken een element of annotatie op de tekening',
-    invoke: 'Teken op de tekening: ',
+    label: 'Draw',
+    hint: 'Draw an element or annotation on the drawing',
+    invoke: 'Draw on the drawing: ',
     needsInput: true,
   },
   {
-    id: 'detect-doors',
+    id: 'detect-openings',
     icon: '🚪',
-    label: 'Herken deuren',
-    hint: 'Detecteer de deuren in de plattegrond en markeer ze',
-    invoke: 'Bekijk de plattegrond, herken de deuren en markeer elke deur op de tekening met een markering en een korte label.',
+    label: 'Find openings',
+    hint: 'Detect doors and windows in the plan and mark them',
+    invoke: 'Look at the floor plan, identify the doors and windows, and mark each one on the drawing with an annotation and a short label.',
+  },
+  {
+    id: 'takeoff',
+    icon: '📐',
+    label: 'Takeoff help',
+    hint: 'Identify items to count or measure for a takeoff',
+    invoke: 'Review the open drawing and list the items a material takeoff would need to count or measure, grouped by type, with the quantity you can see for each.',
   },
 ];
 
 export const SKILLS_SYSTEM_PROMPT =
-  'Je beschikt over een vaardigheden-set en kunt ACTIES uitvoeren op het geopende PDF-document via de MCP-tools van de app:\n' +
-  '- Vertalen / samenvatten: gebruik app_screenshot_view (width 2000) om de pagina te bekijken en te lezen; geef het resultaat als tekst terug.\n' +
-  '- Tekenen: gebruik app_create_annotation. Coordinaten zijn paginapunten op 100% zoom; haal de paginamaat op met app_get_viewport_state (pageW/pageH).\n' +
-  '- Deuren herkennen: doe eerst app_fit_page, maak dan app_screenshot_view (width 2000), herken de deuren visueel en markeer elke deur met app_create_annotation (bijvoorbeeld een box of cloud rond de deur + een textbox-label). Reken screenshot-pixels om naar paginapunten via pageW/pageH.\n' +
-  'Antwoord in het Nederlands, bondig en praktisch. Voer gevraagde acties direct uit en meld kort wat je gedaan hebt.';
+  'You have a skill set and can perform ACTIONS on the open PDF document through the app\'s MCP tools:\n' +
+  '- Reading / summarizing: use app_screenshot_view (width 2000) to view and read the page; return the result as text.\n' +
+  '- Drawing: use app_create_annotation. Coordinates are page points at 100% zoom; get the page size from app_get_viewport_state (pageW/pageH).\n' +
+  '- Finding doors and windows: run app_fit_page first, then app_screenshot_view (width 2000), identify the openings visually, and mark each one with app_create_annotation (for example a box or cloud around the opening plus a textbox label). Convert screenshot pixels to page points via pageW/pageH.\n' +
+  'Always reply in English, concise and practical. Carry out requested actions directly and briefly report what you did.';

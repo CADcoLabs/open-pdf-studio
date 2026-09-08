@@ -9,9 +9,10 @@ import { getActiveDocument } from '../../core/state.js';
 import { useTranslation } from '../../i18n/useTranslation.js';
 
 const GREETING =
-  'Hallo! Ik ben de **OpenAEC-assistent**. Ik kan: 🌐 vertalen, 📝 samenvatten, ✏️ tekenen op de tekening, en 🚪 deuren herkennen. Kies hieronder een vaardigheid of stel je vraag.';
+  'Hi! I\'m the **MAPI assistant**. I can 📝 summarize a document, ✏️ draw on the drawing, 🚪 find doors and windows, and 📐 help with a takeoff. Pick a skill below or just ask a question.';
 const ANTHROPIC_KEY_LS = 'opds-anthropic-key';
-const CLAUDE_MODEL = 'claude-sonnet-4-6';
+const CLAUDE_MODEL = 'claude-opus-5';
+const CLAUDE_MAX_TOKENS = 16000;
 
 // Minimal markdown-lite rendering (bold, inline code, line breaks). The AI text
 // is HTML-escaped first so it can never inject markup.
@@ -29,15 +30,15 @@ function renderContent(text) {
 function describeAiError(err) {
   const raw = String(err?.message ?? err ?? '').trim();
   if (/Claude API 401|invalid x-api-key|authentication_error/i.test(raw)) {
-    return '⚠️ Ongeldige Claude (Anthropic) API-sleutel. Controleer de sleutel via het 🔑-knopje rechtsboven in het paneel.';
+    return '⚠️ Invalid Claude (Anthropic) API key. Check the key with the 🔑 button at the top right of this panel.';
   }
   if (/Claude API 4\d\d|Claude API 5\d\d/i.test(raw)) {
-    return `⚠️ De Claude-API gaf een fout.\n\n_Detail: ${raw}_`;
+    return `⚠️ The Claude API returned an error.\n\n_Detail: ${raw}_`;
   }
-  if (/onbereikbaar|connection|econn|refused|failed to connect|timed out|failed to fetch/i.test(raw)) {
-    return '⚠️ Geen verbinding met de AI-dienst.';
+  if (/unreachable|connection|econn|refused|failed to connect|timed out|failed to fetch/i.test(raw)) {
+    return '⚠️ Could not reach the AI service.';
   }
-  return `⚠️ AI-aanroep mislukt.\n\n_Detail: ${raw || 'onbekende fout'}_`;
+  return `⚠️ AI request failed.\n\n_Detail: ${raw || 'unknown error'}_`;
 }
 
 export default function AssistantPanel() {
@@ -59,7 +60,10 @@ export default function AssistantPanel() {
   });
 
   function systemPrompt() {
-    return 'Je bent de OpenAEC-assistent in Open PDF Studio (een PDF-annotatie-editor). Help de gebruiker met vragen over het geopende PDF-document en algemene taken.\n\n' + SKILLS_SYSTEM_PROMPT;
+    return 'You are the MAPI assistant inside Open PDF Studio, a PDF annotation editor used at ' +
+      'Mullets Aluminum Products, Inc. for drawing markup, measurement, and material takeoff. ' +
+      'Help the user with questions about the open PDF document and with general tasks.\n\n' +
+      SKILLS_SYSTEM_PROMPT;
   }
 
   function saveKey() {
@@ -92,14 +96,30 @@ export default function AssistantPanel() {
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true',
         },
-        body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1024, system: systemPrompt(), messages: msgs }),
+        body: JSON.stringify({
+          model: CLAUDE_MODEL,
+          max_tokens: CLAUDE_MAX_TOKENS,
+          // Chat-style Q&A over one document: low effort keeps replies quick
+          // and cheap. Raise to 'high' if answers start missing detail.
+          output_config: { effort: 'low' },
+          system: systemPrompt(),
+          messages: msgs,
+        }),
       });
       if (!res.ok) {
         const tx = await res.text().catch(() => '');
         throw new Error(`Claude API ${res.status}: ${tx.slice(0, 200)}`);
       }
       const data = await res.json();
-      return data?.content?.[0]?.text || 'Geen antwoord ontvangen.';
+      // A refusal returns HTTP 200 with no usable text — say so rather than
+      // rendering an empty bubble.
+      if (data?.stop_reason === 'refusal') {
+        return '⚠️ Claude declined to answer this request.';
+      }
+      // Thinking is on by default on this model, so content[0] may be a
+      // thinking block. Take the first text block, not the first block.
+      const textBlock = (data?.content || []).find((b) => b?.type === 'text');
+      return textBlock?.text || 'No answer received.';
     };
 
     // MCP relay — an external MCP client (e.g. Claude Code, with working Claude
@@ -107,10 +127,10 @@ export default function AssistantPanel() {
     // Final fallback so the assistant keeps working without a local key.
     const mcpRelay = async () => {
       const history = messages().slice(1)
-        .map((m) => `${m.role === 'user' ? 'Gebruiker' : 'Assistent'}: ${m.content}`)
+        .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
         .join('\n\n');
       const docName = activeDocName();
-      const prompt = `${docName ? `Geopend document: ${docName}\n\n` : ''}${history}\n\nAssistent:`;
+      const prompt = `${docName ? `Open document: ${docName}\n\n` : ''}${history}\n\nAssistant:`;
       return await enqueueAssistantQuestion({ prompt, system: systemPrompt(), docName });
     };
 
@@ -127,7 +147,7 @@ export default function AssistantPanel() {
     let lastErr = null;
     for (const provider of providers) {
       try { answer = await provider(); break; }
-      catch (e) { lastErr = e; console.warn('[assistant] provider faalde, volgende proberen:', e?.message ?? e); }
+      catch (e) { lastErr = e; console.warn('[assistant] provider failed, trying next:', e?.message ?? e); }
     }
     setMessages((m) => [...m, { role: 'assistant', content: answer == null ? describeAiError(lastErr) : answer }]);
     setLoading(false);
@@ -152,25 +172,25 @@ export default function AssistantPanel() {
   }
 
   // Subtitle shows the active provider so the user knows where answers come from.
-  const providerLabel = () => (apiKey() ? 'via Claude' : 'niet verbonden');
+  const providerLabel = () => (apiKey() ? 'via Claude' : 'not connected');
 
   return (
     <Show
       when={open()}
       fallback={
-        <button class="chat-fab" title={t('assistantTitle') || 'OpenAEC-assistent'} onClick={() => setOpen(true)}>💬</button>
+        <button class="chat-fab" title={t('assistantTitle') || 'MAPI Assistant'} onClick={() => setOpen(true)}>💬</button>
       }
     >
       <div class="chat-floating">
         <div class="chat-panel">
           <div class="chat-header">
             <div class="chat-header-titles">
-              <span class="chat-title">✨ OpenAEC-assistent</span>
+              <span class="chat-title">✨ MAPI Assistant</span>
               <span class="chat-subtitle" title={activeDocName() || ''}>
-                {activeDocName() ? `werkt in: ${activeDocName()} · ${providerLabel()}` : providerLabel()}
+                {activeDocName() ? `working in: ${activeDocName()} · ${providerLabel()}` : providerLabel()}
               </span>
             </div>
-            <button class="chat-close" title="Claude (Anthropic) API-sleutel instellen" onClick={() => setShowKey(!showKey())}>🔑</button>
+            <button class="chat-close" title="Set Claude (Anthropic) API key" onClick={() => setShowKey(!showKey())}>🔑</button>
             <button class="chat-close" title={t('close') || 'Close'} onClick={() => setOpen(false)}>✕</button>
           </div>
 
@@ -180,11 +200,11 @@ export default function AssistantPanel() {
                 ref={keyEl}
                 type="password"
                 class="chat-keyinput"
-                placeholder="Claude (Anthropic) API-sleutel — sk-ant-…"
+                placeholder="Claude (Anthropic) API key — sk-ant-…"
                 value={apiKey()}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveKey(); }}
               />
-              <button class="chat-keysave" onClick={saveKey}>Opslaan</button>
+              <button class="chat-keysave" onClick={saveKey}>Save</button>
             </div>
           </Show>
 
@@ -197,7 +217,7 @@ export default function AssistantPanel() {
               )}
             </For>
             <Show when={loading()}>
-              <div class="chat-message chat-assistant"><div class="chat-bubble chat-typing">Denken…</div></div>
+              <div class="chat-message chat-assistant"><div class="chat-bubble chat-typing">Thinking…</div></div>
             </Show>
             <div ref={messagesEnd} />
           </div>
@@ -217,7 +237,7 @@ export default function AssistantPanel() {
               value={input()}
               onInput={(e) => setInput(e.currentTarget.value)}
               onKeyDown={onKeyDown}
-              placeholder="Vraag iets over deze PDF…"
+              placeholder="Ask something about this PDF…"
               rows={2}
             />
             <button class="chat-send" onClick={send} disabled={loading() || !input().trim()}>➤</button>

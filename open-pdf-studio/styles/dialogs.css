@@ -748,11 +748,39 @@
   flex-shrink: 0;
 }
 
+/* MAPI company logo. The mark is dark blue on transparency, so on dark
+   themes it needs a light plate behind it to stay legible. */
+.bs-about-company-logo {
+  display: block;
+  width: auto;
+  height: 40px;
+  max-width: 100%;
+  margin: 0 0 10px 0;
+  background: #ffffff;
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+
 .bs-about-company-desc {
   font-size: 11px;
   color: var(--theme-app-menu-shortcut);
   margin: 0;
   line-height: 1.5;
+}
+
+.bs-about-upstream {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.bs-about-upstream-text {
+  font-size: 11px;
+  color: var(--theme-app-menu-shortcut);
+  margin: 0;
 }
 
 .bs-about-links {

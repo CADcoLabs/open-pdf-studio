@@ -24,7 +24,7 @@ export function registerAssistantMessages(fn) { _getMessages = fn; }
 
 /** app_assistant_ask — submit a message as if the user typed it in the window. */
 export function submitAssistantMessage(text) {
-  if (typeof _submit !== 'function') return { ok: false, error: 'assistent nog niet gereed' };
+  if (typeof _submit !== 'function') return { ok: false, error: 'assistant not ready yet' };
   _submit(String(text ?? ''));
   return { ok: true };
 }
@@ -44,7 +44,7 @@ export function enqueueAssistantQuestion({ prompt, system, docName } = {}, timeo
       _waiters.delete(id);
       const i = _queue.findIndex((q) => q.id === id);
       if (i >= 0) _queue.splice(i, 1);
-      reject(new Error('Geen MCP-client beantwoordde de vraag op tijd (time-out).'));
+      reject(new Error('No MCP client answered the question in time (timed out).'));
     }, timeoutMs);
     _waiters.set(id, { resolve, reject, timer });
   });
@@ -69,7 +69,7 @@ export function relayClientActive(windowMs = 30000) {
 /** app_assistant_answer — resolve the awaiting question with the client's text. */
 export function answerAssistantQuestion(id, text) {
   const w = _waiters.get(id);
-  if (!w) return { ok: false, error: `onbekende of verlopen vraag-id: ${id}` };
+  if (!w) return { ok: false, error: `unknown or expired question id: ${id}` };
   clearTimeout(w.timer);
   _waiters.delete(id);
   const i = _queue.findIndex((q) => q.id === id);

@@ -1,74 +1,66 @@
-<p align="center">
-  <img src="open-pdf-studio/src-tauri/icons/icon.png" alt="Open PDF Studio" width="128" height="128">
-</p>
-
-<h1 align="center">Open PDF Studio</h1>
+<h1 align="center">Open PDF Studio — MAPI Edition</h1>
 
 <p align="center">
-  <strong>A free, open-source PDF editor and annotator for Windows, macOS, Linux, and Android.</strong>
+  <strong>Internal PDF markup, measurement, and takeoff tool for Mullets Aluminum Products, Inc.</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/OpenAEC-Foundation/open-pdf-studio/releases/latest"><img src="https://img.shields.io/github/v/release/OpenAEC-Foundation/open-pdf-studio?style=flat-square" alt="Latest Release"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-LGPL--3.0-blue?style=flat-square" alt="License"></a>
-  <a href="https://snapcraft.io/open-pdf-studio"><img src="https://img.shields.io/badge/snap-open--pdf--studio-green?style=flat-square&logo=snapcraft" alt="Snap Store"></a>
-  <a href="https://github.com/OpenAEC-Foundation/open-pdf-studio/releases"><img src="https://img.shields.io/github/downloads/OpenAEC-Foundation/open-pdf-studio/total?style=flat-square" alt="Total downloads"></a>
-  <a href="https://github.com/OpenAEC-Foundation/open-pdf-studio/commits"><img src="https://img.shields.io/github/commit-activity/m/OpenAEC-Foundation/open-pdf-studio?style=flat-square" alt="Commit activity"></a>
-  <a href="https://github.com/OpenAEC-Foundation/open-pdf-studio/commits"><img src="https://img.shields.io/github/last-commit/OpenAEC-Foundation/open-pdf-studio?style=flat-square" alt="Last commit"></a>
-  <a href="https://github.com/OpenAEC-Foundation/open-pdf-studio/stargazers"><img src="https://img.shields.io/github/stars/OpenAEC-Foundation/open-pdf-studio?style=flat-square" alt="Stars"></a>
+  <img src="https://img.shields.io/badge/status-internal%20development-orange?style=flat-square" alt="Internal development">
+  <img src="https://img.shields.io/badge/upstream-detached-lightgrey?style=flat-square" alt="Detached fork">
 </p>
 
 ---
 
-Open PDF Studio is a lightweight, native desktop application that provides professional-grade PDF annotation, markup, and editing tools without subscriptions, telemetry, or bloatware. Built with [Tauri 2](https://tauri.app/) and web technologies, it delivers a fast, modern experience with a Microsoft Office-style ribbon interface.
+## About this repository
+
+This is a **private, detached fork** maintained by CADcoLabs for **Mullets Aluminum Products, Inc. (MAPI)**.
+It exists so we can develop, customize, and break things freely without any effect on the upstream project.
+
+**This repository is not connected to upstream.** It has no upstream git remote, does not send pull
+requests upstream, does not report issues upstream, and does not consume upstream's release or update
+channels. Nothing done here reaches OpenAEC-Foundation. Do not file MAPI-specific issues upstream.
+
+### Attribution
+
+Open PDF Studio was created and is actively developed by the
+**[OpenAEC Foundation](https://github.com/OpenAEC-Foundation/open-pdf-studio)**. All credit for the
+original application — its architecture, rendering pipeline, annotation engine, measurement tools, and
+the enormous amount of work behind them — belongs to that project and its contributors.
+
+This fork adds MAPI-specific branding, tooling, and deployment packaging on top of their work. It is a
+derivative work distributed under the same license. If you want the real, maintained, community version
+of Open PDF Studio, get it from
+[OpenAEC-Foundation/open-pdf-studio](https://github.com/OpenAEC-Foundation/open-pdf-studio) — not here.
+
+---
+
+## Goal
+
+Provide MAPI personnel with a free, installable, no-subscription replacement for Bluebeam Revu covering
+the work we actually do: **drawing markup, calibrated measurement, and material takeoff.**
+
+We do not use Studio Sessions and are not trying to replicate them. If shared review ever becomes a
+requirement, we will solve it our own way.
+
+### Planned MAPI customizations
+
+- Company branding — logo, splash, About dialog, application identity
+- Bundled OCR so scanned drawings are searchable out of the box
+- A MAPI tool chest of saved, reusable markup tools and standard annotations
+- MAPI symbol libraries for our products and details
+- Company standard stamps, title blocks, and page templates
+- A single signed Windows installer for internal deployment
+
+---
 
 <p align="center">
-  <img src="docs/screenshots/pdf-compare.jpg" alt="Open PDF Studio – side-by-side PDF compare with change list" width="100%">
+  <img src="docs/screenshots/pdf-compare.jpg" alt="Side-by-side PDF compare with change list" width="100%">
 </p>
 
 <p align="center">
   <img src="docs/screenshots/drawing-tools.jpg" alt="CAD-style drawing, measurement, and markup tools on an architectural elevation" width="100%">
 </p>
-
-## Repository activity
-
-Downloads, commit activity, and star growth for this active open-source project.
-
-<p align="center">
-  <a href="https://github.com/OpenAEC-Foundation/open-pdf-studio/releases"><img src="https://img.shields.io/github/downloads/OpenAEC-Foundation/open-pdf-studio/total?style=for-the-badge&label=Total%20downloads&color=2563eb" alt="Total downloads"></a>
-  &nbsp;
-  <a href="https://github.com/OpenAEC-Foundation/open-pdf-studio/releases/latest"><img src="https://img.shields.io/github/downloads/OpenAEC-Foundation/open-pdf-studio/latest/total?style=for-the-badge&label=Latest%20release&color=059669" alt="Latest release downloads"></a>
-  &nbsp;
-  <a href="https://github.com/OpenAEC-Foundation/open-pdf-studio/commits"><img src="https://img.shields.io/github/commit-activity/m/OpenAEC-Foundation/open-pdf-studio?style=for-the-badge&label=Commits%2Fmonth&color=7c3aed" alt="Commits per month"></a>
-</p>
-
-**Star history**
-
-<p align="center">
-  <a href="https://www.star-history.com/?repos=openaec-foundation%2Fopen-pdf-studio&type=date&legend=top-left">
-    <img src="https://api.star-history.com/svg?repos=openaec-foundation%2Fopen-pdf-studio&type=date&legend=top-left" alt="Star History Chart" width="100%">
-  </a>
-</p>
-
-<!-- Commit & contributor activity chart: register this repo once at
-     https://repobeats.axiom.co, then paste the generated embed here for a
-     live commit-history graph:
-     ![Activity](https://repobeats.axiom.co/api/embed/<hash>.svg) -->
-
-## Why Open PDF Studio?
-
-Professional annotation, markup, measurement, redaction and page management — the tools that typical commercial PDF editors lock behind a subscription or a paid tier — are all included, free and fully open source. No subscriptions, no telemetry, no watermarks.
-
-| | Open PDF Studio | Typical commercial PDF editors |
-|---|:---:|:---:|
-| **Price** | Free & open source (LGPL-3.0) | Subscription or paid license |
-| **Annotations & markup** | All included | Often a paid tier |
-| **Measurement tools** | Included | Usually paid |
-| **Stamps, watermarks & redaction** | Included | Usually paid |
-| **Page management** | Included | Usually paid |
-| **Multi-tab editing** | Included | Varies |
-| **Telemetry** | None | Common |
-| **Platforms** | Windows, macOS, Linux, Android | Varies (often fewer) |
 
 ## Features
 
@@ -102,7 +94,6 @@ Professional annotation, markup, measurement, redaction and page management — 
 
 ### Symbol Palettes
 - Drag-and-drop symbol libraries onto the page for repetitive markup
-- Built-in libraries plus NEN 1414 and Dutch (NL) category sets
 - Searchable, collapsible categories; enable or disable groups per project
 - Create custom symbol groups saved with your preferences
 - Dockable to either side of the canvas or floated freely
@@ -111,6 +102,7 @@ Professional annotation, markup, measurement, redaction and page management — 
 - Count tool with named tally categories for on-drawing object counting (takeoff)
 - Live quantities schedule that aggregates counts, lengths, and areas
 - Grouping, sorting, filtering, subtotals, and grand totals
+- CSV export of the schedule
 - Configurable columns, formatting, and table appearance
 - Place the generated schedule back onto the page as a table
 
@@ -220,18 +212,11 @@ Thumbnails, Bookmarks, Annotations, Attachments, Digital Signatures, Layers, For
 
 ### Customization
 - **5 themes:** Dark, Light, Blue, High Contrast, System (auto-detect)
-- **39 languages** including RTL support:
-  [Arabic](https://en.wikipedia.org/wiki/Arabic_language), [Bengali](https://en.wikipedia.org/wiki/Bengali_language), [Bulgarian](https://en.wikipedia.org/wiki/Bulgarian_language), [Catalan](https://en.wikipedia.org/wiki/Catalan_language), [Chinese](https://en.wikipedia.org/wiki/Chinese_language), [Croatian](https://en.wikipedia.org/wiki/Croatian_language), [Czech](https://en.wikipedia.org/wiki/Czech_language), [Danish](https://en.wikipedia.org/wiki/Danish_language), [Dutch](https://en.wikipedia.org/wiki/Dutch_language), [English](https://en.wikipedia.org/wiki/English_language), [Finnish](https://en.wikipedia.org/wiki/Finnish_language), [French](https://en.wikipedia.org/wiki/French_language), [German](https://en.wikipedia.org/wiki/German_language), [Greek](https://en.wikipedia.org/wiki/Greek_language), [Hebrew](https://en.wikipedia.org/wiki/Hebrew_language), [Hindi](https://en.wikipedia.org/wiki/Hindi), [Hungarian](https://en.wikipedia.org/wiki/Hungarian_language), [Indonesian](https://en.wikipedia.org/wiki/Indonesian_language), [Italian](https://en.wikipedia.org/wiki/Italian_language), [Japanese](https://en.wikipedia.org/wiki/Japanese_language), [Korean](https://en.wikipedia.org/wiki/Korean_language), [Malay](https://en.wikipedia.org/wiki/Malay_language), [Norwegian](https://en.wikipedia.org/wiki/Norwegian_language), [Farsi (Persian)](https://en.wikipedia.org/wiki/Persian_language), [Polish](https://en.wikipedia.org/wiki/Polish_language), [Portuguese](https://en.wikipedia.org/wiki/Portuguese_language), [Romanian](https://en.wikipedia.org/wiki/Romanian_language), [Russian](https://en.wikipedia.org/wiki/Russian_language), [Serbian](https://en.wikipedia.org/wiki/Serbian_language), [Slovak](https://en.wikipedia.org/wiki/Slovak_language), [Spanish](https://en.wikipedia.org/wiki/Spanish_language), [Swahili](https://en.wikipedia.org/wiki/Swahili_language), [Swedish](https://en.wikipedia.org/wiki/Swedish_language), [Tamil](https://en.wikipedia.org/wiki/Tamil_language), [Thai](https://en.wikipedia.org/wiki/Thai_language), [Turkish](https://en.wikipedia.org/wiki/Turkish_language), [Ukrainian](https://en.wikipedia.org/wiki/Ukrainian_language), [Urdu](https://en.wikipedia.org/wiki/Urdu), [Vietnamese](https://en.wikipedia.org/wiki/Vietnamese_language)
-- Configurable preferences dialog
+- **39 languages** including RTL support
 
 ### Undo/Redo
 - Up to 100 levels per document
 - Covers annotations, page operations, watermarks, and text edits
-
-### Auto-Update
-- Built-in update checker with download progress
-- Skip version or remind later options
-- Automatic installation and relaunch
 
 ## Keyboard Shortcuts
 
@@ -268,32 +253,8 @@ Thumbnails, Bookmarks, Annotations, Attachments, Digital Signatures, Layers, For
 
 ## Installation
 
-### Windows
-Download the latest `.exe` installer from [Releases](https://github.com/OpenAEC-Foundation/OpenPDFStudio/releases/latest).
-
-### macOS
-Download the latest `.dmg` (universal binary for Intel and Apple Silicon) from [Releases](https://github.com/OpenAEC-Foundation/OpenPDFStudio/releases/latest).
-
-### Linux
-
-**Snap (Ubuntu App Center):**
-```bash
-sudo snap install open-pdf-studio
-```
-
-**Debian/Ubuntu (.deb):**
-```bash
-sudo dpkg -i open-pdf-studio_*.deb
-```
-
-**AppImage:**
-```bash
-chmod +x open-pdf-studio_*.AppImage
-./open-pdf-studio_*.AppImage
-```
-
-### Android
-Download the APK from [Releases](https://github.com/OpenAEC-Foundation/OpenPDFStudio/releases/latest).
+There are no public releases of this fork. MAPI builds are produced internally and distributed by
+CADcoLabs. Until the internal installer exists, build from source.
 
 ## Building from Source
 
@@ -302,9 +263,9 @@ Download the APK from [Releases](https://github.com/OpenAEC-Foundation/OpenPDFSt
 - [Rust](https://www.rust-lang.org/tools/install) (stable)
 - [CMake](https://cmake.org/download/) and a C/C++ toolchain
 - System dependencies:
-  - **Linux:** `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`
-  - **macOS:** Xcode Command Line Tools; universal release builds also need the `aarch64-apple-darwin` and `x86_64-apple-darwin` Rust targets
   - **Windows:** Visual Studio Build Tools with C++ workload
+  - **Linux:** `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`
+  - **macOS:** Xcode Command Line Tools
 
 ### Build
 
@@ -314,10 +275,7 @@ npm ci
 npx tauri build
 ```
 
-The build automatically downloads the pinned macOS PDFium runtime and verifies
-its SHA-256 checksum. Build artifacts are written to the workspace-level
-`target/release/bundle/` directory, or `target/universal-apple-darwin/release/bundle/`
-for a universal macOS build.
+Build artifacts are written to the workspace-level `target/release/bundle/` directory.
 
 ### Development
 
@@ -340,20 +298,21 @@ npx tauri dev
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guidelines.
+This is an internal MAPI repository. Contributions, issues, and pull requests are handled internally by
+CADcoLabs.
 
-In short: because the codebase moves quickly, a clear, well-described **issue** is usually more valuable than a code pull request — a precise description can be implemented against the *current* code before a branch would go stale.
-
-### Symbol libraries and content — pull requests very welcome
-
-Content is the exception to "prefer issues over PRs". **We want every symbol library in the world.** Symbol sets, hatch patterns, and other reusable content don't go stale the way code does, so **content pull requests are actively encouraged** — bring the standards and libraries from your country, industry, and discipline. Symbols are organised by industry (e.g. AEC) and country (e.g. NL), and localisation will keep expanding, so libraries for any region are welcome.
-
-### We're looking for a content & extensions maintainer
-
-We are looking for someone to **own and maintain the extensions and the content repository** — curating incoming symbol libraries and content contributions, and keeping the ecosystem organised as it grows. If that sounds like you, please open an issue to introduce yourself.
+If you have an improvement that is **not MAPI-specific** and would benefit everyone, please contribute it
+to the upstream project at
+[OpenAEC-Foundation/open-pdf-studio](https://github.com/OpenAEC-Foundation/open-pdf-studio) instead. Their
+guidance is that a clear, well-described issue is usually more valuable than a pull request, and that
+content contributions — symbol libraries, hatch patterns — are especially welcome.
 
 ## License
 
-Open PDF Studio is licensed under the [GNU Lesser General Public License v3.0](LICENSE.md).
+Open PDF Studio is licensed under the [GNU Lesser General Public License v3.0](LICENSE.md), and this fork
+is distributed under the same license. Original copyright remains with the OpenAEC Foundation and the
+Open PDF Studio contributors. MAPI-specific additions are copyright © 2026 Barry Adams / CADcoLabs and
+are likewise released under the LGPL-3.0.
 
-PDF.js is licensed under the Apache License 2.0. pdf-lib is licensed under the MIT License. PDFium is licensed under the BSD 3-Clause License.
+PDF.js is licensed under the Apache License 2.0. pdf-lib is licensed under the MIT License. PDFium is
+licensed under the BSD 3-Clause License.
