@@ -1,7 +1,7 @@
 {
-  "name": "open-pdf-studio",
+  "name": "openpdfstudio-mapi",
   "version": "1.95.0",
-  "description": "A free, open-source PDF annotation editor built with Tauri",
+  "description": "Internal MAPI fork of Open PDF Studio, built with Tauri",
   "scripts": {
     "prepare:native-runtime": "node scripts/native-runtime.mjs",
     "predev": "npm run prepare:native-runtime && cargo build -p pdfium-worker",

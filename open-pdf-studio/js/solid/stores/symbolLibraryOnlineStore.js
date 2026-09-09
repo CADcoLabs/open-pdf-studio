@@ -33,6 +33,13 @@ const INDEX_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 1 dag; daarna stille refresh
 const FETCH_TIMEOUT_MS = 20000;
 const PARALLEL_FETCHES = 6;
 
+// MAPI fork: this feature pulls from OpenAEC-Foundation/open-pdf-studio-library
+// on GitHub (raw.githubusercontent.com + api.github.com), silently, whenever
+// the Settings dialog opens. This fork has no relationship with that repo —
+// hard-disabled so the app never reaches out to it. Flip back to `false` only
+// if MAPI stands up its own library repo and this is repointed at it.
+const ONLINE_LIBRARY_DISABLED = true;
+
 // --- State ---
 const [indexData, setIndexData] = createSignal(null); // geparste index of null
 // 'idle' | 'loading' | 'ready' | 'offline' (fetch faalde én geen cache)
@@ -80,6 +87,10 @@ async function refreshIndexFromNetwork() {
 // Zonder cache én zonder netwerk valt de UI terug op de statische
 // INDUSTRIES/COUNTRIES-lijst (status 'offline').
 export function ensureLibraryIndex() {
+  if (ONLINE_LIBRARY_DISABLED) {
+    setIndexStatus('offline');
+    return;
+  }
   // Al geladen of verse cache: toon die direct, maar ververs ALTIJD stil op
   // de achtergrond. De TTL bleek in de praktijk te grof: nieuw gepubliceerde
   // collecties (of nieuwe metadata zoals parametrische catalogi) waren tot
@@ -244,6 +255,10 @@ async function downloadCollection(collectionId, indexMeta, lang) {
 
 // --- Alles voor land+sector downloaden ---
 export async function downloadCountrySector(countryId, sectorId) {
+  if (ONLINE_LIBRARY_DISABLED) {
+    setDownloadError('Online symbol library is disabled in this build.');
+    return;
+  }
   if (downloadBusy()) return;
   setDownloadError('');
   setDownloadBusy(true);

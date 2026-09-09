@@ -8,7 +8,7 @@
 #
 # Requires a test instance with the MCP server:
 #   $env:OPDS_DETACHED=1; $env:OPS_ENABLE_MCP=1
-#   open-pdf-studio.exe --mcp-server --mcp-port 9224
+#   openpdfstudio-mapi.exe --mcp-server --mcp-port 9224
 #
 # Usage: powershell -File scripts/test-move-sweep.ps1
 

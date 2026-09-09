@@ -20,6 +20,15 @@ use std::net::TcpListener;
 const KEYRING_SERVICE: &str = "open-pdf-studio-openaec";
 const LOGIN_TIMEOUT_SECS: u64 = 300;
 
+// MAPI fork: this whole module talks to OpenAEC's own accounts/cloud-storage
+// service (issuer, accounts_api_url — dev defaults here, real ones only via
+// OPENAEC_ACCOUNTS_CONFIG). This fork has no relationship with that service —
+// hard-disabled so nothing here can ever open a connection to it, regardless
+// of how these commands get invoked. Flip back to `false` only if MAPI stands
+// up its own accounts backend and this is repointed at it.
+const ACCOUNTS_DISABLED: bool = true;
+const ACCOUNTS_DISABLED_MSG: &str = "OpenAEC Accounts is disabled in this build";
+
 // ── Config ──────────────────────────────────────────────────────────────
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -274,6 +283,9 @@ fn wait_for_callback(listener: TcpListener) -> Result<(String, String), String> 
 
 #[tauri::command]
 pub async fn accounts_sign_in(app: tauri::AppHandle) -> Result<UserInfo, String> {
+    if ACCOUNTS_DISABLED {
+        return Err(ACCOUNTS_DISABLED_MSG.into());
+    }
     use tauri_plugin_shell::ShellExt;
 
     let cfg = load_config();
@@ -377,6 +389,9 @@ pub async fn accounts_sign_in(app: tauri::AppHandle) -> Result<UserInfo, String>
 
 #[tauri::command]
 pub async fn accounts_get_user() -> Option<UserInfo> {
+    if ACCOUNTS_DISABLED {
+        return None;
+    }
     // Voorkeur: het opgeslagen id_token (goedkoop). Zonder id_token (deze
     // client levert er geen) → userinfo met het opgeslagen access_token, zodat
     // de sessie ook na herstart hersteld wordt.
@@ -502,6 +517,9 @@ pub async fn accounts_fetch(
     method: Option<String>,
     body: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
+    if ACCOUNTS_DISABLED {
+        return Err(ACCOUNTS_DISABLED_MSG.into());
+    }
     let method = method.unwrap_or_else(|| "GET".into());
     let body = body.map(ApiBody::Json).unwrap_or(ApiBody::None);
     let (status, text) = api_request(&method, &path, body).await?;
@@ -511,6 +529,9 @@ pub async fn accounts_fetch(
 /// Upload van een bestand (bv. een PDF) naar de OpenAEC cloud-opslag.
 #[tauri::command]
 pub async fn accounts_upload_file(file_name: String, content: Vec<u8>) -> Result<serde_json::Value, String> {
+    if ACCOUNTS_DISABLED {
+        return Err(ACCOUNTS_DISABLED_MSG.into());
+    }
     let (status, text) = api_request(
         "POST",
         "/me/files",
@@ -524,6 +545,9 @@ pub async fn accounts_upload_file(file_name: String, content: Vec<u8>) -> Result
 /// (PDF's zijn binair — tekst-doorgave zou ze beschadigen).
 #[tauri::command]
 pub async fn accounts_download_file(id: String) -> Result<String, String> {
+    if ACCOUNTS_DISABLED {
+        return Err(ACCOUNTS_DISABLED_MSG.into());
+    }
     let cfg = load_config();
     let client = reqwest::Client::new();
     let mut access = keyring_get("access_token").ok_or("niet ingelogd")?;
@@ -560,6 +584,9 @@ pub async fn accounts_download_file(id: String) -> Result<String, String> {
 /// binaire gat in de generieke `accounts_fetch` (die tekst teruggeeft).
 #[tauri::command]
 pub async fn accounts_brand_logo() -> Result<Option<String>, String> {
+    if ACCOUNTS_DISABLED {
+        return Err(ACCOUNTS_DISABLED_MSG.into());
+    }
     let cfg = load_config();
     let client = reqwest::Client::new();
     let mut access = keyring_get("access_token").ok_or("niet ingelogd")?;

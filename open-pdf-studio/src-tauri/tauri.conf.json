@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Open PDF Studio",
+  "productName": "OpenPDFStudio-MAPI",
   "version": "1.95.0",
   "identifier": "com.cadcolabs.mapi.openpdfstudio",
   "build": {
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Open PDF Studio",
+        "title": "OpenPDFStudio-MAPI",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
@@ -89,7 +89,7 @@
           "pdf"
         ],
         "mimeType": "application/pdf",
-        "name": "OpenPDFStudio.pdf",
+        "name": "OpenPDFStudioMAPI.pdf",
         "description": "Portable Document Format",
         "role": "Editor"
       }
@@ -119,7 +119,7 @@
       ],
       "desktop": {
         "schemes": [
-          "openpdfstudio"
+          "openpdfstudio-mapi"
         ]
       }
     }

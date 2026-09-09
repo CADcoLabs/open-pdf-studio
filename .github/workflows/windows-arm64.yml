@@ -67,7 +67,7 @@ jobs:
           $setup = Get-ChildItem target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
           if (-not $setup) { Write-Error "No NSIS installer produced"; exit 1 }
           Write-Output "Installer: $($setup.Name) ($([math]::Round($setup.Length/1MB,1)) MB)"
-          $bytes = [System.IO.File]::ReadAllBytes("target/release/open-pdf-studio.exe")
+          $bytes = [System.IO.File]::ReadAllBytes("target/release/openpdfstudio-mapi.exe")
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
           $machine = [BitConverter]::ToUInt16($bytes, $peOffset + 4)
           Write-Output ("PE machine type: 0x{0:X4}" -f $machine)

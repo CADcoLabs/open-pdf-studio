@@ -5,6 +5,12 @@
 
 const RELEASES_API = 'https://api.github.com/repos/OpenAEC-Foundation/open-pdf-studio/releases?per_page=30';
 
+// MAPI fork: this repo has no releases published on api.github.com and no
+// relationship with OpenAEC-Foundation's repo — hard-disabled so the app
+// never queries it. Flip back to `false` only once CADcoLabs publishes its
+// own releases and RELEASES_API points at that repo instead.
+const PREVIOUS_VERSION_DISABLED = true;
+
 // "1.93.1" of "v1.93.1" → [1, 93, 1]; null bij alles wat geen kale
 // major.minor.patch is (nightly's, pre-releases met suffix, enz.).
 export function parseVersion(s) {
@@ -66,8 +72,14 @@ export function pickDownloadUrl(assets, userAgent) {
 // installer zelf zijn de bevestigingsmomenten. Alleen bij "niets gevonden"
 // of een fout komt een korte systeemmelding.
 export async function installPreviousVersion() {
-  const { openExternal } = await import('../core/platform.js');
   const i18next = (await import('i18next')).default;
+  if (PREVIOUS_VERSION_DISABLED) {
+    window.__TAURI__?.dialog?.message?.(
+      i18next.t('dialogs:previousVersion.notFound'),
+      { title: i18next.t('ribbon:help.previousVersion'), kind: 'info' });
+    return;
+  }
+  const { openExternal } = await import('../core/platform.js');
   try {
     const vorige = await fetchPreviousRelease(window.__APP_VERSION__ || '0.0.0');
     if (!vorige) {
@@ -90,6 +102,7 @@ export async function installPreviousVersion() {
 // Haalt de vorige release op. Retourneert { version, assets } of null als er
 // geen oudere gepubliceerde versie is. Gooit bij netwerk-/API-fouten.
 export async function fetchPreviousRelease(currentVersion) {
+  if (PREVIOUS_VERSION_DISABLED) return null;
   const res = await fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json' } });
   if (!res.ok) throw new Error(`GitHub API: ${res.status}`);
   const releases = await res.json();

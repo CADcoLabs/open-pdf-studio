@@ -118,10 +118,10 @@ FunctionEnd
   ; --- PDF file association ---
   ${If} $AssocPDFState == ${BST_CHECKED}
     DetailPrint "Setting ${PRODUCTNAME} as default PDF application..."
-    WriteRegStr SHCTX "Software\Classes\OpenPDFStudio.pdf" "" "PDF Document"
-    WriteRegStr SHCTX "Software\Classes\OpenPDFStudio.pdf\DefaultIcon" "" "$INSTDIR\file-icon.ico,0"
-    WriteRegStr SHCTX "Software\Classes\OpenPDFStudio.pdf\shell\open\command" "" "$\"$INSTDIR\${MAINBINARYNAME}.exe$\" $\"%1$\""
-    WriteRegStr SHCTX "Software\Classes\.pdf" "" "OpenPDFStudio.pdf"
+    WriteRegStr SHCTX "Software\Classes\OpenPDFStudioMAPI.pdf" "" "PDF Document"
+    WriteRegStr SHCTX "Software\Classes\OpenPDFStudioMAPI.pdf\DefaultIcon" "" "$INSTDIR\file-icon.ico,0"
+    WriteRegStr SHCTX "Software\Classes\OpenPDFStudioMAPI.pdf\shell\open\command" "" "$\"$INSTDIR\${MAINBINARYNAME}.exe$\" $\"%1$\""
+    WriteRegStr SHCTX "Software\Classes\.pdf" "" "OpenPDFStudioMAPI.pdf"
     System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0x0000, p 0, p 0)'
     DetailPrint "PDF file association set."
   ${Else}
@@ -165,10 +165,10 @@ FunctionEnd
 !macro NSIS_HOOK_PREUNINSTALL
 
   ReadRegStr $R0 SHCTX "Software\Classes\.pdf" ""
-  ${If} $R0 == "OpenPDFStudio.pdf"
+  ${If} $R0 == "OpenPDFStudioMAPI.pdf"
     DeleteRegValue SHCTX "Software\Classes\.pdf" ""
   ${EndIf}
-  DeleteRegKey SHCTX "Software\Classes\OpenPDFStudio.pdf"
+  DeleteRegKey SHCTX "Software\Classes\OpenPDFStudioMAPI.pdf"
   Delete "$INSTDIR\file-icon.ico"
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0x0000, p 0, p 0)'
 

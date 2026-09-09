@@ -52,7 +52,7 @@ jobs:
           cargo build -p pdfium-worker
           New-Item -ItemType Directory -Force open-pdf-studio/src-tauri/binaries | Out-Null
           Copy-Item target/debug/pdfium-worker.exe open-pdf-studio/src-tauri/binaries/pdfium-worker-x86_64-pc-windows-msvc.exe -Force
-          cargo build -p open-pdf-studio
+          cargo build -p openpdfstudio-mapi
 
       - name: Save cargo registry + target
         if: steps.cargo-cache.outputs.cache-hit != 'true'
