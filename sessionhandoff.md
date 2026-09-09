@@ -22,12 +22,15 @@ The symbol library implementation is complete except one deferred item:
    `npx tauri dev` in the background, open the Symbol Palette, confirm the 462 MAPI
    profile symbols render (categories, icons, names), then it's safe to consider the
    symbol library visually verified.
-2. Decide whether/when to push branch `002` (already up to date with `origin/002` as of
-   this session start) with the new Task 5 commit — per this repo's `CLAUDE.md`, pushing
-   means bumping the minor version everywhere, running the release-build GitHub Action, and
-   publishing a draft release. Not done automatically; ask the user first.
-3. After the symbol library ships, next in the agreed sequence:
-   **tool chest** (sub-project 2) → **markup list/summary** (sub-project 3). Comparison/overlay
+2. Task 5's commit (`5f3a36e8`) is **pushed** to `origin/002` (plain push, no version bump —
+   per this repo's `CLAUDE.md` the bump+release-build+draft-release ceremony is reserved for
+   a deliberate "ready to ship" moment, not every push; that hasn't happened yet). Pull `002`
+   at the home office once there to pick up the visual check.
+3. **Next up: the tool chest sub-project** (sub-project 2 of 3) — saved/reusable markup tools
+   with MAPI default styles, likely starting from a fresh brainstorming/spec pass like the
+   symbol library got. Symbol palettes + per-type default styles from this session are a head
+   start. Also revisit the **Bluebeam Tool Chest (.btx) import** idea (see below) as part of
+   this sub-project. After that: **markup list/summary** (sub-project 3). Comparison/overlay
    is shelved per user decision — not part of this rollout.
 
 ### Task 5 — the real batch export (done 2026-09-09)
@@ -222,8 +225,9 @@ SolidWorks VBA API (`ProfileFeature` sketch identification, `OpenDoc6`, `EditCop
   workflow files.
 - Retired files go to `DELETED/`, never deleted outright.
 - **Pushing needs the CADcoLabs GitHub account** (not the usual-active MulletsAluminum one) —
-  see the 2026-09-08 session's notes on switching `gh` accounts around a push. Not needed this
-  session since nothing was pushed.
+  `gh auth switch --user CADcoLabs` before `git push`, then switch back
+  (`gh auth switch --user MulletsAluminum`) after. Confirmed working again this session for
+  the Task 5 push.
 - `git commit -m` with a PowerShell here-string breaks on embedded quotes — write the message
   to a file and use `git commit -F`, or use the Bash tool's heredoc.
 - Per `open-pdf-studio/CLAUDE.md`'s Github commit process: version bump, pushing, triggering
@@ -255,5 +259,5 @@ SolidWorks VBA API (`ProfileFeature` sketch identification, `OpenDoc6`, `EditCop
 | `npx vite build` after real regeneration | ✅ pass |
 | Task 4 / Task 5 in-app visual check | ❌ still blocked — MSVC build tools missing, deferred to home office |
 | Full `npx tauri build` | ❌ still not run this fork's lifetime |
-| Push to `origin/002` | branch was already up to date with origin at session start; this session's new commit(s) not yet pushed — ask user first |
+| Push to `origin/002` | ✅ pushed (`5f3a36e8`), plain push, no version bump / no release triggered |
 | Assistant tested against a live API key | ❌ still not done (carried over from 2026-09-08) |
