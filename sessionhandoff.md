@@ -2,31 +2,71 @@
 
 **Session dates:** 2026-09-08 through 2026-09-09
 **Repo:** `C:\Users\barrya\source\repos\open-PDF-studio`
-**Branch:** `001` (off `main` @ `f83ce772`, upstream v1.95.0)
-**Commit:** `0565cb43` — **local only, 10 commits ahead of `origin/001`, not pushed**
+**Branch:** `002` (renamed/repushed from `001` since the "Pick up here" list below was first
+written; `002` was up to date with `origin/002` at this session's start, off `main` @
+`f83ce772`, upstream v1.95.0)
 **Maintainer:** Barry Adams / CADcoLabs, for Mullet's Aluminum Products, Inc. (MAPI)
 
 ---
 
-## Pick up here
+## Pick up here (updated 2026-09-09, later same day)
 
-1. **Run Task 2's SolidWorks smoke test** (see `open-pdf-studio/scripts/solidworks/README.md`
-   and the plan's Task 2 Step 2): temporarily point `ROOT_FOLDER` in
-   `ExportWeldmentProfiles.bas` at just `...\ansi inch\angle alum` (~12 files), run it in
-   SolidWorks, confirm the DXFs look right and no source `.SLDLFP` was touched, then revert
-   the constants back to the real paths.
-2. **Run Task 5** (the plan's final task): the real batch export (~474 files, a few minutes),
-   review `_export_log.txt`, regenerate `js/symbols/data/mapiProfiles.js` for real via
-   `node scripts/mapi-profiles/generate.mjs "<export folder>" js/symbols/data/mapiProfiles.js`,
-   re-run the four test files, visually spot-check the Symbol Palette, commit.
-3. **Delete `completion_report.md`** (repo root, untracked) once its contents are no longer
-   needed — it was Codex's task-completion note for this session, already relayed and
-   validated below. Not committed, so it's not blocking anything, but it's clutter.
-4. Decide whether to push these 10 commits to `origin/001` now or keep batching — nothing
-   has been pushed this session.
-5. After the symbol library ships, next in the agreed sequence:
+Tasks 2 and 5 (the two steps left for a human) are now done — see "Task 5" section below.
+The symbol library implementation is complete except one deferred item:
+
+1. **In-app visual check of the Symbol Palette is deferred to the home office.** This
+   machine has no MSVC C++ build tools (only plain `rustup` was installed this session),
+   so `cargo`/`npx tauri dev` can't link. User's call: install the multi-GB VS "Desktop
+   development with C++" workload at the office, or wait until home where there's more
+   disk space. **Decision: wait until home.** When back there: install the workload, run
+   `npx tauri dev` in the background, open the Symbol Palette, confirm the 462 MAPI
+   profile symbols render (categories, icons, names), then it's safe to consider the
+   symbol library visually verified.
+2. Decide whether/when to push branch `002` (already up to date with `origin/002` as of
+   this session start) with the new Task 5 commit — per this repo's `CLAUDE.md`, pushing
+   means bumping the minor version everywhere, running the release-build GitHub Action, and
+   publishing a draft release. Not done automatically; ask the user first.
+3. After the symbol library ships, next in the agreed sequence:
    **tool chest** (sub-project 2) → **markup list/summary** (sub-project 3). Comparison/overlay
    is shelved per user decision — not part of this rollout.
+
+### Task 5 — the real batch export (done 2026-09-09)
+
+Codex's session had left Task 5 (the real ~474-file SolidWorks batch export) for a human,
+per the plan. The user was busy at work and asked me to automate/take over as much as
+possible. What actually happened:
+
+- **SolidWorks was already running** on this machine, so rather than have the user paste
+  the macro into the VBA editor by hand, I drove the live instance via COM automation —
+  first attempted from PowerShell (failed: PowerShell's dynamic COM binder can't call
+  `ISldWorks` members on this SolidWorks version, `TYPE_E_ELEMENTNOTFOUND` on every call,
+  even `.GetType()`), then a small early-bound C# console tool compiled ad hoc with `csc.exe`
+  against `SolidWorks.Interop.sldworks.dll`/`swconst.dll` (found under
+  `C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\`). This tool is **not checked into the
+  repo** — it's a one-off, machine-specific automation aid living in this session's
+  scratchpad, faithfully porting `ExportWeldmentProfiles.bas`'s logic (same guarantees:
+  never saves a source `.SLDLFP`, only writes new `.dxf` files under the output folder).
+- **Real, unexpected discovery from actually running the untested macro logic for the
+  first time**: `CloseDoc` pops a native "Save changes?" Win32 dialog on *every single
+  file* (the temp drawing is genuinely dirty from the `Paste`) — something no one could
+  have caught by review alone, since Task 2 Step 2 (the smoke test) had never actually been
+  run before this session. First smoke-test attempt required the user to manually click
+  "No" ~15 times before we caught what was happening. Fixed by adding a background Win32
+  watcher thread to the C# tool that finds this exact dialog (scoped strictly to windows
+  owned by the `SLDWORKS.exe` process id, never any other window) and clicks "No"
+  automatically — matching exactly what the user had been doing by hand. Confirmed working
+  with a clean rerun of the 39-file smoke test: 39/39 real files exported, 36 dialogs
+  auto-dismissed, zero manual clicks, ~3 sec/file unattended.
+- **Full batch**: 462 of 468 exported (the 6 "failures" are `~$*.sldlfp` lock-file
+  artifacts SolidWorks itself creates, not real parts — correctly skipped, not a bug).
+  Confirmed no source `.SLDLFP` file's timestamp changed. Regenerated the real
+  `js/symbols/data/mapiProfiles.js` (462 real MAPI profile symbols, replacing the 2-category
+  placeholder from Task 4) via
+  `node scripts/mapi-profiles/generate.mjs "C:\Users\barrya\Desktop\MAPI-Profile-DXF-Export" js/symbols/data/mapiProfiles.js`.
+  Re-ran all 13 tests across the 4 task test files — pass. `npx vite build` — pass.
+- **Rust/cargo installed this session** (via `rustup-init.exe`, default stable toolchain)
+  specifically to attempt the in-app visual check — but MSVC build tools are also needed
+  and weren't, so the visual check itself is still deferred (see item 1 above).
 
 ---
 
@@ -162,13 +202,11 @@ SolidWorks VBA API (`ProfileFeature` sketch identification, `OpenDoc6`, `EditCop
   matched the 7 `CATEGORY_META` keys); the real count is 101, and all 101 were correctly
   translated. Nothing is actually missing.
 
-**Not done / blocked:**
-- Task 2 Step 2 (manual SolidWorks smoke test) — needs a human.
-- Task 4 Step 8 (visual check in the running app) — blocked, `cargo`/Tauri toolchain not
-  available in Codex's environment. **Should be done before Task 5**, alongside Task 5's own
-  visual check, since it's cheap once someone's looking at the running app anyway.
-- Task 5 (the real ~474-file batch run + final data module + commit) — not started, correctly
-  left for a human per the plan.
+**Not done / blocked (updated — see "Task 5" section above for what changed):**
+- Task 2 Step 2 and Task 5 are now **done** — see above.
+- Task 4 Step 8 + Task 5's own in-app visual check — still blocked, now on MSVC build tools
+  specifically (not just `cargo`, which was installed this session) — **deferred to the home
+  office** per user decision.
 
 ---
 
@@ -210,9 +248,12 @@ SolidWorks VBA API (`ProfileFeature` sketch identification, `OpenDoc6`, `EditCop
 | `tauri.conf.json` / `package.json` parse | ✅ valid JSON |
 | NEN 1414 → MAPI translation completeness | ✅ all 101 real entries present (my "108" claim was a miscount, corrected) |
 | Duplicate-key bug in `nen1414Library.js` | ✅ found and fixed (`0565cb43`) |
-| Task 2 SolidWorks smoke test | ❌ not run — needs a human |
-| Task 4 in-app visual check | ❌ blocked, no `cargo`/Tauri toolchain in Codex's environment |
-| Task 5 (real batch export + final data module) | ❌ not started |
+| Task 2 SolidWorks smoke test | ✅ run this session (COM automation) — 39/39 real files, source untouched |
+| Task 5 real batch export | ✅ run this session — 462/468 (6 benign `~$` lock-artifact skips), source untouched |
+| `mapiProfiles.js` regenerated for real | ✅ 462 real MAPI profile symbols, replacing the placeholder |
+| All 4 task test files (13 tests) after real regeneration | ✅ re-run, all pass |
+| `npx vite build` after real regeneration | ✅ pass |
+| Task 4 / Task 5 in-app visual check | ❌ still blocked — MSVC build tools missing, deferred to home office |
 | Full `npx tauri build` | ❌ still not run this fork's lifetime |
-| Push to `origin/001` | ❌ 10 commits ahead, not pushed |
+| Push to `origin/002` | branch was already up to date with origin at session start; this session's new commit(s) not yet pushed — ask user first |
 | Assistant tested against a live API key | ❌ still not done (carried over from 2026-09-08) |
